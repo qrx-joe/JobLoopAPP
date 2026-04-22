@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useResume } from '@/hooks/useResume'
-import type { ResumeContent } from '@/types/resume'
+import { useState } from 'react'
 
 const GUIDED_STEPS = [
   { key: 'latest_experience', question: '最近一段经历是什么？（工作/实习/项目/校园）', placeholder: '例如：在XX公司做新媒体运营...' },
@@ -12,44 +10,41 @@ const GUIDED_STEPS = [
 ]
 
 export default function NewResumePage() {
-  const {
-    content,
-    isGenerating,
-    error,
-    inputMode,
-    rawInput,
-    setRawInput,
-    setInputMode,
-    generateResume,
-    setContent,
-  } = useResume()
-
+  const [activeTab, setActiveTab] = useState<'text' | 'guided' | 'file'>('text')
+  const [rawInput, setRawInput] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
   const [guidedAnswers, setGuidedAnswers] = useState<Record<string, string>>({})
-
-  // Load draft on mount
-  useEffect(() => {
-    if (!content && !isGenerating) {
-      // Check for existing draft
-      try {
-        const savedDraft = localStorage.getItem('jobloop_resume_draft')
-        if (savedDraft) {
-          const parsed = JSON.parse(savedDraft)
-          if (parsed?.content) setContent(parsed.content)
-        }
-      } catch {}
-    }
-  }, [])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const handleGenerate = async () => {
+    if (!rawInput.trim()) return
+    setIsGenerating(true)
+    setError(null)
+
     try {
-      await generateResume({
-        userInput: rawInput,
-        inputMode,
-        guidedAnswers,
+      const response = await fetch('/api/resume/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userInput: rawInput,
+          inputMode: activeTab,
+          guidedAnswers,
+        }),
       })
+
+      if (response.ok) {
+        const data = await response.json()
+        setGeneratedContent(JSON.stringify(data.data?.content || data.content || {}, null, 2))
+      } else {
+        const errData = await response.json().catch(() => ({}))
+        setError(errData.error || `生成失败 (${response.status})`)
+      }
     } catch {
-      // Error handled in hook
+      setError('网络错误，请检查连接后重试')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -57,10 +52,9 @@ export default function NewResumePage() {
     if (currentStep < GUIDED_STEPS.length - 1) {
       setCurrentStep(currentStep + 1)
     } else {
-      // All steps done, generate resume
       const combinedInput = Object.values(guidedAnswers).join('\n')
       setRawInput(combinedInput)
-      handleGenerate()
+      setActiveTab('text')
     }
   }
 
@@ -73,7 +67,7 @@ export default function NewResumePage() {
       </div>
 
       {/* Mode Selector */}
-      <div className="flex gap-2 mb-8">
+      <div className="flex gap-2 mb-8 flex-wrap">
         {[
           { id: 'text' as const, label: '自由输入' },
           { id: 'guided' as const, label: '引导式' },
@@ -81,9 +75,10 @@ export default function NewResumePage() {
         ].map((mode) => (
           <button
             key={mode.id}
-            onClick={() => setInputMode(mode.id)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              inputMode === mode.id
+            type="button"
+            onClick={() => setActiveTab(mode.id)}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm cursor-pointer ${
+              activeTab === mode.id
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
@@ -95,8 +90,8 @@ export default function NewResumePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Input Panel */}
-        <div className="bg-white rounded-xl border p-6">
-          {inputMode === 'text' && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          {activeTab === 'text' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 输入你的经历
@@ -104,20 +99,21 @@ export default function NewResumePage() {
               <textarea
                 value={rawInput}
                 onChange={(e) => setRawInput(e.target.value)}
-                placeholder={`粘贴你的经历信息...\n\n示例：我在XX公司做了两年运营，主要负责公众号内容运营。期间写了100多篇文章，粉丝从0增长到了5万。还做过一个用户增长的项目，通过活动策划拉新了2000多个用户。`}
-                className="w-full h-96 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder={'粘贴你的经历信息...\n\n示例：我在XX公司做了两年运营，主要负责公众号内容运营。期间写了100多篇文章，粉丝从0增长到了5万。还做过一个用户增长的项目...'}
+                rows={14}
+                className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
                 onClick={handleGenerate}
                 disabled={isGenerating || !rawInput.trim()}
-                className="mt-4 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className="mt-4 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {isGenerating ? '⏳ 正在生成...' : '🚀 生成简历'}
               </button>
             </div>
           )}
 
-          {inputMode === 'guided' && (
+          {activeTab === 'guided' && (
             <div>
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm text-gray-500">
@@ -138,7 +134,7 @@ export default function NewResumePage() {
               <h3 className="text-lg font-medium text-gray-900 mb-4">
                 {GUIDED_STEPS[currentStep].question}
               </h3>
-              
+
               <textarea
                 value={guidedAnswers[GUIDED_STEPS[currentStep].key] || ''}
                 onChange={(e) =>
@@ -148,14 +144,16 @@ export default function NewResumePage() {
                   })
                 }
                 placeholder={GUIDED_STEPS[currentStep].placeholder}
-                className="w-full h-64 p-4 border rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
+                rows={10}
+                className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500"
               />
 
               <div className="flex justify-between mt-4">
                 {currentStep > 0 ? (
                   <button
+                    type="button"
                     onClick={() => setCurrentStep(currentStep - 1)}
-                    className="px-6 py-2 text-gray-700 border rounded-lg hover:bg-gray-50"
+                    className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
                   >
                     上一步
                   </button>
@@ -164,9 +162,10 @@ export default function NewResumePage() {
                 )}
                 
                 <button
+                  type="button"
                   onClick={handleGuidedNext}
                   disabled={!guidedAnswers[GUIDED_STEPS[currentStep].key]?.trim() || isGenerating}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {currentStep === GUIDED_STEPS.length - 1 ? '完成并生成' : '下一步'}
                 </button>
@@ -174,122 +173,67 @@ export default function NewResumePage() {
             </div>
           )}
 
-          {inputMode === 'file' && (
+          {activeTab === 'file' && (
             <div className="py-16 text-center">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 cursor-pointer hover:border-blue-400 transition-colors">
-                <p className="text-4xl mb-4">📄</p>
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 cursor-pointer hover:border-blue-400 transition-colors inline-block w-full max-w-sm mx-auto">
+                <p className="text-4xl mb-4">&#x1F4C4;</p>
                 <p className="font-medium text-gray-900 mb-2">
                   点击上传或拖拽文件到此处
                 </p>
                 <p className="text-sm text-gray-500">
                   支持 PDF (.pdf)、Word (.docx) 格式
                 </p>
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.doc"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      // TODO: Implement file parsing API call
-                      console.log('File selected:', file.name)
-                    }
-                  }}
-                />
               </div>
+              <p className="mt-4 text-xs text-gray-400">文件上传功能开发中...</p>
             </div>
           )}
 
           {/* Error Display */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              ⚠️ {error}
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" role="alert">
+              &#x26A0;FE0F; {error}
             </div>
           )}
         </div>
 
         {/* Right: Preview Panel */}
-        <div className="bg-white rounded-xl border p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">简历预览</h3>
-            {content && (
+            {generatedContent && (
               <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
                 已生成
               </span>
             )}
           </div>
 
-          {content ? (
-            <div className="space-y-6">
-              {/* Experience Items */}
-              {content.experienceItems.map((item, index) => (
-                <div key={item.id} className="border-b pb-4 last:border-0">
-                  <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                  {item.role && (
-                    <p className="text-sm text-gray-600 mb-2">{item.role}</p>
-                  )}
-                  
-                  <ul className="space-y-1">
-                    {item.achievements.map((achievement, i) => (
-                      <li key={i} className="text-sm text-gray-700 pl-4 relative before:content-[''] before:absolute before:left-0 before:top-2 before:w-1.5 before:h-1.5 before:bg-blue-500 before:rounded-full">
-                        {achievement}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Skill Tags */}
-                  {content.skillTags.length > 0 && index === 0 && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs font-medium text-gray-500 mb-2">技能标签</p>
-                      <div className="flex flex-wrap gap-2">
-                        {content.skillTags.map((tag) => (
-                          <span
-                            key={tag.name}
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              tag.confidence === 'high'
-                                ? 'bg-blue-100 text-blue-700'
-                                : tag.confidence === 'medium'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {tag.name} ({tag.confidence})
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Suggestions */}
-              {content.rawSuggestions && (
-                <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-800">
-                  💡 {content.rawSuggestions}
-                </div>
-              )}
+          {generatedContent ? (
+            <div className="space-y-4">
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-4 bg-gray-50 rounded-lg overflow-auto max-h-[500px]">
+                {generatedContent}
+              </pre>
 
               {/* Action Buttons */}
-              <div className="flex gap-3 mt-6">
-                <button className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  📥 导出PDF
+              <div className="flex gap-3 mt-6 flex-wrap">
+                <button className="flex-1 min-w-[120px] py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
+                  &#x1F4E5; 导出PDF
                 </button>
-                <button className="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700">
-                  🎯 JD优化 →
+                <button className="flex-1 min-w-[120px] py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 cursor-pointer">
+                  &#x1F3AF; JD优化 &rarr;
                 </button>
-                <button className="flex-1 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
-                  🎤 面试模拟 →
+                <button className="flex-1 min-w-[120px] py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 cursor-pointer">
+                  &#x1F3A4; 面试模拟 &rarr;
                 </button>
               </div>
             </div>
           ) : isGenerating ? (
             <div className="py-20 text-center">
-              <div className="inline-block animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" />
+              <div className="inline-block animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" role="status" aria-label="Loading" />
               <p className="mt-4 text-gray-600">AI正在分析你的经历...</p>
             </div>
           ) : (
             <div className="py-20 text-center text-gray-400">
-              <p className="text-4xl mb-4">📋</p>
+              <p className="text-4xl mb-4">&#x1F4CB;</p>
               <p>左侧输入经历后，这里会显示生成的简历</p>
             </div>
           )}
