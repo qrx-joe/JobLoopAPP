@@ -84,20 +84,36 @@ export default function NewResumePage() {
   }
 
   const handleGenerate = async () => {
-    if (!rawInput.trim()) return;
+    // Check: need either files or text input
+    if (!rawInput.trim() && uploadedFiles.length === 0) return;
     setIsGenerating(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/resume/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userInput: rawInput,
-          inputMode: activeTab,
-          guidedAnswers,
-        }),
-      });
+      let response: Response;
+
+      if (uploadedFiles.length > 0) {
+        // Send files + supplemental text together via FormData
+        const formData = new FormData();
+        uploadedFiles.forEach((f) => formData.append('files', f));
+        if (rawInput.trim()) formData.append('userInput', rawInput.trim());
+
+        response = await fetch('/api/resume/generate', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Text-only mode via JSON
+        response = await fetch('/api/resume/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userInput: rawInput,
+            inputMode: activeTab,
+            guidedAnswers,
+          }),
+        });
+      }
 
       if (response.ok) {
         const data = await response.json();
@@ -200,6 +216,66 @@ export default function NewResumePage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Left: Input Panel */}
         <div className="rounded-xl border border-gray-200 bg-white p-6" role="tabpanel">
+          {/* Persistent file upload area — visible across all tabs */}
+          {activeTab !== 'file' && (
+            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-blue-700">
+                  {uploadedFiles.length > 0
+                    ? `📎 已上传 ${uploadedFiles.length} 个文件`
+                    : '📎 可上传文件补充简历素材'}
+                </span>
+                {uploadedFiles.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => setUploadedFiles([])}
+                    className="cursor-pointer text-xs text-red-500 hover:text-red-700"
+                  >
+                    清除文件
+                  </button>
+                ) : (
+                  <label className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">
+                    上传文件
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt,.md"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.length) {
+                          const newFiles = Array.from(e.target.files).filter(
+                            (f) => f.size <= 10 * 1024 * 1024
+                          );
+                          setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 5));
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              {/* File name chips */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {uploadedFiles.map((file, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
+                    >
+                      📄 {file.name}
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                        className="ml-0.5 cursor-pointer text-blue-500 hover:text-red-500"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {activeTab === 'text' && (
             <div>
               <label
@@ -221,10 +297,16 @@ export default function NewResumePage() {
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating || !rawInput.trim()}
+                disabled={isGenerating || (!rawInput.trim() && uploadedFiles.length === 0)}
                 className="mt-4 w-full cursor-pointer rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {isGenerating ? '正在生成...' : '生成简历'}
+                {isGenerating
+                  ? '正在生成...'
+                  : uploadedFiles.length > 0 && rawInput.trim()
+                    ? `生成简历（${uploadedFiles.length} 个文件 + 文本）`
+                    : uploadedFiles.length > 0
+                      ? `解析 ${uploadedFiles.length} 个文件并生成`
+                      : '生成简历'}
               </button>
             </div>
           )}
@@ -419,44 +501,20 @@ export default function NewResumePage() {
                     </div>
                   </div>
 
-                  {/* Generate button for file mode */}
+                  {/* Generate button for file mode — uses unified handleGenerate */}
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (uploadedFiles.length === 0) return;
-                      setIsGenerating(true);
-                      setError(null);
-
-                      try {
-                        const formData = new FormData();
-                        uploadedFiles.forEach((f) => formData.append('files', f));
-
-                        const res = await fetch('/api/resume/generate', {
-                          method: 'POST',
-                          body: formData,
-                        });
-
-                        if (res.ok) {
-                          const data = await res.json();
-                          setGeneratedContent(
-                            JSON.stringify(data.data?.content || data.content || {}, null, 2)
-                          );
-                        } else {
-                          const errData = await res.json().catch(() => ({}));
-                          setError(errData.error || `生成失败 (${res.status})`);
-                        }
-                      } catch {
-                        setError('网络错误，请检查连接后重试');
-                      } finally {
-                        setIsGenerating(false);
-                      }
-                    }}
-                    disabled={isGenerating || uploadedFiles.length === 0}
+                    onClick={handleGenerate}
+                    disabled={isGenerating || (uploadedFiles.length === 0 && !rawInput.trim())}
                     className="mt-4 w-full cursor-pointer rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300"
                   >
                     {isGenerating
                       ? '正在解析文件...'
-                      : `解析 ${uploadedFiles.length} 个文件并生成简历`}
+                      : rawInput.trim() && uploadedFiles.length > 0
+                        ? `生成简历（${uploadedFiles.length} 个文件 + 文本）`
+                        : uploadedFiles.length > 0
+                          ? `解析 ${uploadedFiles.length} 个文件并生成`
+                          : '生成简历'}
                   </button>
                 </>
               )}
