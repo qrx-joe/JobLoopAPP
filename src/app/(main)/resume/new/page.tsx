@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const GUIDED_STEPS = [
   {
@@ -35,15 +35,148 @@ export default function NewResumePage() {
   const [guidedAnswers, setGuidedAnswers] = useState<Record<string, string>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const router = useRouter();
+
+  // --- Parse uploaded files (auto-triggered when files change) ---
+  const handleParseFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
+    setIsParsing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      files.forEach((f) => formData.append('files', f));
+
+      const res = await fetch('/api/resume/parse', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `文件解析失败 (${res.status})`);
+      }
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || '解析失败');
+
+      // Fill rawInput with parsed text; if existing text exists, append
+      const parsedText = data.parsedText || '';
+      setRawInput((prev) => {
+        if (prev.trim()) return `${prev}\n\n${parsedText}`;
+        return parsedText;
+      });
+
+      // Auto-switch to text tab so user can edit the parsed result
+      setActiveTab('text');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '文件解析失败，请重试');
+    } finally {
+      setIsParsing(false);
+    }
+  }, []);
+
+  // Auto-parse whenever uploadedFiles change and have new files
+  useEffect(() => {
+    if (uploadedFiles.length > 0 && !isParsing) {
+      // Small delay to ensure all files are collected
+      const timer = setTimeout(() => handleParseFiles(uploadedFiles), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [uploadedFiles.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Generate resume (unified) ---
+  const handleGenerate = async () => {
+    if (!rawInput.trim()) return;
+    setIsGenerating(true);
+    setError(null);
+
+    try {
+      // Always send as JSON with the current rawInput text
+      const response = await fetch('/api/resume/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userInput: rawInput,
+          inputMode: activeTab,
+          guidedAnswers,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedContent(JSON.stringify(data.data?.content || data.content || {}, null, 2));
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        setError(errData.error || `生成失败 (${response.status})`);
+      }
+    } catch {
+      setError('网络错误，请检查连接后重试');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // --- Guided mode ---
+  const handleGuidedNext = () => {
+    if (currentStep < GUIDED_STEPS.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      const combinedInput = Object.values(guidedAnswers).join('\n');
+      setRawInput(combinedInput);
+      setActiveTab('text');
+    }
+  };
+
+  // --- Export DOCX ---
+  const handleExport = async () => {
+    if (!generatedContent) return;
+    setIsExporting(true);
+
+    try {
+      let content: Record<string, unknown>;
+      try {
+        content = JSON.parse(generatedContent);
+      } catch {
+        setError('导出失败：内容格式异常，请重新生成');
+        return;
+      }
+
+      const response = await fetch('/api/resume/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, format: 'docx' }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `导出失败 (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '导出失败，请重试');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
 
-    // Parse URL params
     const mode = searchParams.get('mode');
     const content = searchParams.get('content');
     const filenames = searchParams.get('filenames') || searchParams.get('filename');
@@ -53,9 +186,10 @@ export default function NewResumePage() {
       setActiveTab('text');
     } else if (mode === 'file' && filenames) {
       setActiveTab('file');
-      // Display file info in raw input area as hint
       const names = decodeURIComponent(filenames);
-      setRawInput(`[待解析文件: ${names}]\n\n请等待文件上传功能完成，或直接在下方输入经历内容...`);
+      setRawInput(
+        `[待解析文件: ${names}]\n\n请点击「解析文件」按钮提取内容，或切换到自由输入模式手动粘贴...`
+      );
     } else if (mode === 'guided') {
       const dataStr = searchParams.get('data');
       if (dataStr) {
@@ -82,104 +216,6 @@ export default function NewResumePage() {
       </div>
     );
   }
-
-  const handleGenerate = async () => {
-    // Check: need either files or text input
-    if (!rawInput.trim() && uploadedFiles.length === 0) return;
-    setIsGenerating(true);
-    setError(null);
-
-    try {
-      let response: Response;
-
-      if (uploadedFiles.length > 0) {
-        // Send files + supplemental text together via FormData
-        const formData = new FormData();
-        uploadedFiles.forEach((f) => formData.append('files', f));
-        if (rawInput.trim()) formData.append('userInput', rawInput.trim());
-
-        response = await fetch('/api/resume/generate', {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        // Text-only mode via JSON
-        response = await fetch('/api/resume/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userInput: rawInput,
-            inputMode: activeTab,
-            guidedAnswers,
-          }),
-        });
-      }
-
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedContent(JSON.stringify(data.data?.content || data.content || {}, null, 2));
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        setError(errData.error || `生成失败 (${response.status})`);
-      }
-    } catch {
-      setError('网络错误，请检查连接后重试');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleGuidedNext = () => {
-    if (currentStep < GUIDED_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      const combinedInput = Object.values(guidedAnswers).join('\n');
-      setRawInput(combinedInput);
-      setActiveTab('text');
-    }
-  };
-
-  // Export resume as DOCX file
-  const handleExport = async () => {
-    if (!generatedContent) return;
-    setIsExporting(true);
-
-    try {
-      let content: Record<string, unknown>;
-      try {
-        content = JSON.parse(generatedContent);
-      } catch {
-        setError('导出失败：内容格式异常，请重新生成');
-        return;
-      }
-
-      const response = await fetch('/api/resume/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, format: 'docx' }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `导出失败 (${response.status})`);
-      }
-
-      // Trigger download from blob
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = '';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '导出失败，请重试');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -216,66 +252,7 @@ export default function NewResumePage() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Left: Input Panel */}
         <div className="rounded-xl border border-gray-200 bg-white p-6" role="tabpanel">
-          {/* Persistent file upload area — visible across all tabs */}
-          {activeTab !== 'file' && (
-            <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-blue-700">
-                  {uploadedFiles.length > 0
-                    ? `📎 已上传 ${uploadedFiles.length} 个文件`
-                    : '📎 可上传文件补充简历素材'}
-                </span>
-                {uploadedFiles.length > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setUploadedFiles([])}
-                    className="cursor-pointer text-xs text-red-500 hover:text-red-700"
-                  >
-                    清除文件
-                  </button>
-                ) : (
-                  <label className="cursor-pointer text-xs font-medium text-blue-600 hover:text-blue-800">
-                    上传文件
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.txt,.md"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files?.length) {
-                          const newFiles = Array.from(e.target.files).filter(
-                            (f) => f.size <= 10 * 1024 * 1024
-                          );
-                          setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 5));
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
-              {/* File name chips */}
-              {uploadedFiles.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {uploadedFiles.map((file, idx) => (
-                    <span
-                      key={idx}
-                      className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-800"
-                    >
-                      📄 {file.name}
-                      <button
-                        type="button"
-                        onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
-                        className="ml-0.5 cursor-pointer text-blue-500 hover:text-red-500"
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {/* ===== TEXT TAB ===== */}
           {activeTab === 'text' && (
             <div>
               <label
@@ -294,23 +271,71 @@ export default function NewResumePage() {
                 rows={14}
                 className="w-full resize-none rounded-lg border border-gray-300 p-4 focus:border-transparent focus:ring-2 focus:ring-blue-500"
               />
+              {/* Source indicator */}
+              {uploadedFiles.length > 0 && (
+                <p className="mt-1 text-xs text-blue-500">
+                  💡 已从 {uploadedFiles.length} 个文件提取内容（可在上方编辑修改）
+                </p>
+              )}
               <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={isGenerating || (!rawInput.trim() && uploadedFiles.length === 0)}
+                disabled={isGenerating || !rawInput.trim()}
                 className="mt-4 w-full cursor-pointer rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {isGenerating
-                  ? '正在生成...'
-                  : uploadedFiles.length > 0 && rawInput.trim()
-                    ? `生成简历（${uploadedFiles.length} 个文件 + 文本）`
-                    : uploadedFiles.length > 0
-                      ? `解析 ${uploadedFiles.length} 个文件并生成`
-                      : '生成简历'}
+                {isGenerating ? '正在生成...' : '✨ 生成简历'}
               </button>
+              {/* Also show quick file upload under text area */}
+              {uploadedFiles.length === 0 && (
+                <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 p-3 text-sm text-gray-500 hover:border-blue-400 hover:text-blue-600">
+                  <span>📎 补充上传文件</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.md"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.length) {
+                        const newFiles = Array.from(e.target.files).filter(
+                          (f) => f.size <= 10 * 1024 * 1024
+                        );
+                        setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 5));
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                </label>
+              )}
+              {/* Parse status indicator when files are added from text tab */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg bg-blue-50 p-3">
+                  {isParsing ? (
+                    <>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                      <span className="text-sm text-blue-700">
+                        正在解析 {uploadedFiles.length} 个文件...
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-blue-700">
+                        ✅ 已解析 {uploadedFiles.length} 个文件，内容已填充到上方编辑区
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadedFiles([])}
+                        className="ml-auto cursor-pointer text-xs text-red-500 hover:text-red-700"
+                      >
+                        清除文件
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
+          {/* ===== GUIDED TAB ===== */}
           {activeTab === 'guided' && (
             <div>
               <div className="mb-4 flex items-center justify-between">
@@ -377,8 +402,10 @@ export default function NewResumePage() {
             </div>
           )}
 
+          {/* ===== FILE UPLOAD TAB ===== */}
           {activeTab === 'file' && (
             <div className="py-8">
+              {/* Drop zone */}
               <div
                 className={`cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
                   isDragging
@@ -399,7 +426,6 @@ export default function NewResumePage() {
                   );
                   if (files.length > 0) {
                     setUploadedFiles((prev) => [...prev, ...files].slice(0, 5));
-                    setRawInput('');
                   }
                 }}
               >
@@ -415,7 +441,6 @@ export default function NewResumePage() {
                         (f) => f.size <= 10 * 1024 * 1024
                       );
                       setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 5));
-                      setRawInput('');
                       e.target.value = '';
                     }
                   }}
@@ -427,7 +452,7 @@ export default function NewResumePage() {
                 </p>
               </div>
 
-              {/* File List */}
+              {/* File list */}
               {uploadedFiles.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <div className="flex items-center justify-between">
@@ -436,10 +461,7 @@ export default function NewResumePage() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        setUploadedFiles([]);
-                        setRawInput('');
-                      }}
+                      onClick={() => setUploadedFiles([])}
                       className="cursor-pointer text-xs text-red-500 hover:text-red-700"
                     >
                       清空全部
@@ -468,55 +490,26 @@ export default function NewResumePage() {
                       </button>
                     </div>
                   ))}
-                </div>
-              )}
 
-              {/* Hint */}
-              {uploadedFiles.length > 0 && (
-                <>
-                  <div className="mt-3 flex items-start gap-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                    <svg
-                      className="mt-0.5 h-4 w-4 shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div>
-                      <p>
-                        提示：已选择 {uploadedFiles.length} 个文件，点击下方按钮开始解析并生成简历。
-                      </p>
-                      <button
-                        onClick={() => setActiveTab('text')}
-                        className="mt-1 font-medium text-blue-600 underline"
-                      >
-                        或切换到自由输入 →
-                      </button>
-                    </div>
+                  {/* Auto-parse status */}
+                  <div className="mt-3 rounded-lg bg-blue-50 p-4 text-center">
+                    {isParsing ? (
+                      <>
+                        <span className="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-600 border-t-transparent align-middle" />
+                        <span className="text-sm font-medium text-blue-700">
+                          正在解析 {uploadedFiles.length} 个文件...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium text-blue-700">
+                          ✅ 已选择 {uploadedFiles.length} 个文件，正在自动解析...
+                        </span>
+                        <p className="mt-1 text-xs text-gray-500">解析完成后会自动跳转到编辑区</p>
+                      </>
+                    )}
                   </div>
-
-                  {/* Generate button for file mode — uses unified handleGenerate */}
-                  <button
-                    type="button"
-                    onClick={handleGenerate}
-                    disabled={isGenerating || (uploadedFiles.length === 0 && !rawInput.trim())}
-                    className="mt-4 w-full cursor-pointer rounded-lg bg-blue-600 py-3 font-semibold text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300"
-                  >
-                    {isGenerating
-                      ? '正在解析文件...'
-                      : rawInput.trim() && uploadedFiles.length > 0
-                        ? `生成简历（${uploadedFiles.length} 个文件 + 文本）`
-                        : uploadedFiles.length > 0
-                          ? `解析 ${uploadedFiles.length} 个文件并生成`
-                          : '生成简历'}
-                  </button>
-                </>
+                </div>
               )}
             </div>
           )}
@@ -561,26 +554,35 @@ export default function NewResumePage() {
                 </button>
                 <button
                   type="button"
+                  onClick={() => router.push('/jd')}
                   className="min-w-[120px] flex-1 cursor-pointer rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
                   JD优化 &rarr;
                 </button>
                 <button
                   type="button"
+                  onClick={() => router.push('/interview')}
                   className="min-w-[120px] flex-1 cursor-pointer rounded-lg bg-purple-600 py-2.5 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   面试模拟 &rarr;
                 </button>
               </div>
+
+              {/* AI Content Disclaimer */}
+              <p className="text-center text-xs text-gray-400">
+                本内容由AI辅助生成，请核实后使用 · Powered by JobLoop AI
+              </p>
             </div>
-          ) : isGenerating ? (
+          ) : isGenerating || isParsing ? (
             <div className="py-20 text-center">
               <div
                 className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"
                 role="status"
                 aria-label="加载中"
               />
-              <p className="mt-4 text-gray-600">AI正在分析你的经历...</p>
+              <p className="mt-4 text-gray-600">
+                {isParsing ? '正在解析文件内容...' : 'AI正在分析你的经历...'}
+              </p>
             </div>
           ) : (
             <div className="py-20 text-center text-gray-400">
