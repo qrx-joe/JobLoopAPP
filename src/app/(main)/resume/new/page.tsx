@@ -2,27 +2,45 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import {
+  saveResumeDraft,
+  getResumeDraft,
+  clearResumeDraft,
+  saveGeneratedResume,
+  getGeneratedResume,
+} from '@/lib/storage';
 
+// Unified guided steps — aligned with homepage
 const GUIDED_STEPS = [
   {
-    key: 'latest_experience',
-    question: '最近一段经历是什么？（工作/实习/项目/校园）',
-    placeholder: '例如：在XX公司做新媒体运营...',
+    key: 'name',
+    question: '你的名字是什么？（用于简历抬头）',
+    placeholder: '张三',
   },
   {
-    key: 'responsibility',
-    question: '你在其中承担了什么职责？',
-    placeholder: '例如：负责公众号的内容策划和运营...',
+    key: 'target_role',
+    question: '你的目标岗位是什么？',
+    placeholder: '前端开发工程师 / 产品经理 / 数据分析师...',
   },
   {
-    key: 'actions',
-    question: '你做了哪些具体的事情？',
-    placeholder: '例如：每周产出3篇原创文章，建立了选题库...',
+    key: 'experience',
+    question: '描述你最近的一段工作/实习经历',
+    placeholder: '2023.06-至今 在XX公司担任XX职位，负责XX工作。期间完成了XX项目，实现了XX成果...',
   },
   {
-    key: 'results',
-    question: '结果如何？有什么可量化的成果？',
-    placeholder: '例如：粉丝从0增长到5万，阅读率提升了40%...',
+    key: 'education',
+    question: '你的教育背景？',
+    placeholder: '2020-2024 XX大学 XX专业 本科 · 主修课程/绩点/荣誉...',
+  },
+  {
+    key: 'skills',
+    question: '你的核心技能和工具？',
+    placeholder: 'React, TypeScript, Node.js, Python, Figma, 数据分析...',
+  },
+  {
+    key: 'projects',
+    question: '有代表性的项目经历？（可选）',
+    placeholder: '独立完成了XX项目，负责XX模块，使用XX技术栈，实现了XX功能...',
   },
 ];
 
@@ -96,6 +114,13 @@ export default function NewResumePage() {
     setIsGenerating(true);
     setError(null);
 
+    // Save draft before generating (auto-save)
+    saveResumeDraft({
+      rawInput,
+      inputMode: activeTab,
+      guidedAnswers,
+    });
+
     try {
       // Always send as JSON with the current rawInput text
       const response = await fetch('/api/resume/generate', {
@@ -110,7 +135,11 @@ export default function NewResumePage() {
 
       if (response.ok) {
         const data = await response.json();
-        setGeneratedContent(JSON.stringify(data.data?.content || data.content || {}, null, 2));
+        const contentStr = JSON.stringify(data.data?.content || data.content || {}, null, 2);
+        setGeneratedContent(contentStr);
+
+        // Save generated content for JD/Interview pages
+        saveGeneratedResume({ content: contentStr, generatedAt: Date.now() });
       } else {
         const errData = await response.json().catch(() => ({}));
         setError(errData.error || `生成失败 (${response.status})`);
@@ -174,9 +203,11 @@ export default function NewResumePage() {
     }
   };
 
+  // --- Restore / Init ---
   useEffect(() => {
     setMounted(true);
 
+    // Priority 1: URL params (from homepage)
     const mode = searchParams.get('mode');
     const content = searchParams.get('content');
     const filenames = searchParams.get('filenames') || searchParams.get('filename');
@@ -186,9 +217,8 @@ export default function NewResumePage() {
       setActiveTab('text');
     } else if (mode === 'file' && filenames) {
       setActiveTab('file');
-      const names = decodeURIComponent(filenames);
       setRawInput(
-        `[待解析文件: ${names}]\n\n请点击「解析文件」按钮提取内容，或切换到自由输入模式手动粘贴...`
+        `[待解析文件: ${decodeURIComponent(filenames)}]\n\n请上传文件后自动解析，或切换到自由输入模式手动粘贴...`
       );
     } else if (mode === 'guided') {
       const dataStr = searchParams.get('data');
@@ -200,8 +230,33 @@ export default function NewResumePage() {
           /* ignore */
         }
       }
+    } else {
+      // Priority 2: localStorage draft
+      const draft = getResumeDraft();
+      if (draft && draft.rawInput) {
+        setRawInput(draft.rawInput);
+        setActiveTab(draft.inputMode || 'text');
+        if (Object.keys(draft.guidedAnswers || {}).length > 0) {
+          setGuidedAnswers(draft.guidedAnswers);
+        }
+      }
+
+      // Priority 3: restore generated resume if exists
+      const generated = getGeneratedResume();
+      if (generated?.content) {
+        setGeneratedContent(generated.content);
+      }
     }
   }, [searchParams]);
+
+  // --- Auto-save draft on input change (debounced via state) ---
+  useEffect(() => {
+    if (!mounted || !rawInput.trim()) return;
+    const timer = setTimeout(() => {
+      saveResumeDraft({ rawInput, inputMode: activeTab, guidedAnswers });
+    }, 1000); // debounce 1s
+    return () => clearTimeout(timer);
+  }, [rawInput, guidedAnswers, activeTab, mounted]);
 
   if (!mounted) {
     return (
@@ -554,14 +609,28 @@ export default function NewResumePage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push('/jd')}
+                  onClick={() => {
+                    // Carry generated resume content + raw input to JD page via localStorage
+                    if (generatedContent) {
+                      saveGeneratedResume({ content: generatedContent, generatedAt: Date.now() });
+                    }
+                    saveResumeDraft({ rawInput, inputMode: activeTab, guidedAnswers });
+                    router.push('/jd');
+                  }}
                   className="min-w-[120px] flex-1 cursor-pointer rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
                 >
                   JD优化 &rarr;
                 </button>
                 <button
                   type="button"
-                  onClick={() => router.push('/interview')}
+                  onClick={() => {
+                    // Carry generated resume content + raw input to Interview page
+                    if (generatedContent) {
+                      saveGeneratedResume({ content: generatedContent, generatedAt: Date.now() });
+                    }
+                    saveResumeDraft({ rawInput, inputMode: activeTab, guidedAnswers });
+                    router.push('/interview');
+                  }}
                   className="min-w-[120px] flex-1 cursor-pointer rounded-lg bg-purple-600 py-2.5 text-sm font-medium text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
                 >
                   面试模拟 &rarr;

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getGeneratedResume, getResumeDraft, saveJDInput, getJDInput } from '@/lib/storage';
 
 interface GapItem {
   area: string;
@@ -36,11 +37,45 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 export default function JDOptimizePage() {
+  const [mounted, setMounted] = useState(false);
   const [jdInput, setJdInput] = useState('');
   const [resumeInput, setResumeInput] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<JDMatchData | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Restore data from localStorage on mount
+  useEffect(() => {
+    setMounted(true);
+    // Try to auto-fill resume content from previous session
+    const generated = getGeneratedResume();
+    if (generated?.content) {
+      // Use raw input draft if available, else use generated JSON
+      const draft = getResumeDraft();
+      if (draft?.rawInput) {
+        setResumeInput(draft.rawInput);
+      } else {
+        setResumeInput(generated.content);
+      }
+    } else {
+      const draft = getResumeDraft();
+      if (draft?.rawInput) {
+        setResumeInput(draft.rawInput);
+      }
+    }
+
+    // Restore JD input if previously saved
+    const savedJD = getJDInput();
+    if (savedJD) {
+      setJdInput(savedJD);
+    }
+  }, []);
+
+  // Auto-save JD input
+  useEffect(() => {
+    if (!mounted || !jdInput.trim()) return;
+    saveJDInput(jdInput);
+  }, [jdInput, mounted]);
 
   const handleAnalyze = async () => {
     if (!jdInput.trim() || !resumeInput.trim()) return;

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { saveResumeDraft } from '@/lib/storage';
 
 type InputMode = 'text' | 'file' | 'guided';
 
@@ -101,16 +102,26 @@ export default function HomePage() {
 
   const handleDragLeave = () => setDragOver(false);
 
-  // Navigate to resume generation
+  // Navigate to resume generation — use localStorage to avoid URL length limits
   const handleGenerateResume = () => {
     if (activeTab === 'text') {
-      router.push(`/resume/new?mode=text&content=${encodeURIComponent(textContent)}`);
+      // Save text content to localStorage, then navigate
+      saveResumeDraft({
+        rawInput: textContent,
+        inputMode: 'text',
+        guidedAnswers: {},
+      });
+      router.push('/resume/new?mode=text');
     } else if (activeTab === 'file' && uploadedFiles.length > 0) {
-      // Pass multiple filenames as comma-separated
-      const filenames = uploadedFiles.map((f) => f.name).join(',');
-      router.push(`/resume/new?mode=file&filenames=${encodeURIComponent(filenames)}`);
+      router.push(`/resume/new?mode=file`);
     } else if (activeTab === 'guided') {
-      router.push(`/resume/new?mode=guided&data=${encodeURIComponent(JSON.stringify(guidedData))}`);
+      // Save guided answers to localStorage, then navigate
+      saveResumeDraft({
+        rawInput: Object.values(guidedData).join('\n'),
+        inputMode: 'guided',
+        guidedAnswers: guidedData,
+      });
+      router.push('/resume/new?mode=guided');
     }
   };
 
@@ -118,7 +129,7 @@ export default function HomePage() {
   const GUIDED_STEPS = [
     { key: 'name', label: '你的名字', placeholder: '张三', type: 'text' as const },
     {
-      key: 'targetRole',
+      key: 'target_role',
       label: '目标岗位',
       placeholder: '前端开发工程师 / 产品经理 / 市场运营...',
       type: 'text' as const,
