@@ -1,89 +1,135 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { renderPrompt } from '@/lib/prompts/registry'
-import { llmRouter } from '@/lib/ai/router'
-import { retryWithBackoff, withTimeout, AIOperationError, FALLBACK_RESPONSES } from '@/lib/ai/error-handler'
-import type { ResumeGenerateRequest } from '@/types/resume'
-import type { CallLLMOptions } from '@/lib/ai/router'
+import { NextRequest, NextResponse } from 'next/server';
+import { renderPrompt } from '@/lib/prompts/registry';
+import { llmRouter } from '@/lib/ai/router';
+import {
+  retryWithBackoff,
+  withTimeout,
+  AIOperationError,
+  FALLBACK_RESPONSES,
+} from '@/lib/ai/error-handler';
+
+// Extract JSON from LLM response (handles markdown code blocks, etc.)
+function extractJSON(text: string): string {
+  // Try direct parse first
+  try {
+    JSON.parse(text);
+    return text;
+  } catch {}
+
+  // Try extracting from markdown code block
+  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    return jsonMatch[1].trim();
+  }
+
+  // Try finding JSON object in text
+  const braceStart = text.indexOf('{');
+  const braceEnd = text.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+    return text.substring(braceStart, braceEnd + 1);
+  }
+
+  return text;
+}
 
 export async function POST(request: NextRequest) {
+  console.log('[Resume API] Request received');
+
   try {
-    const body: ResumeGenerateRequest = await request.json()
-    
+    const body = await request.json();
+
     if (!body.userInput && !body.guidedAnswers) {
-      return NextResponse.json(
-        { success: false, error: '请提供经历内容' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: '请提供经历内容' }, { status: 400 });
     }
 
-    // Build input content
-    const userInput = body.userInput || 
-      Object.values(body.guidedAnswers || {}).join('\n')
+    const userInput = body.userInput || Object.values(body.guidedAnswers || {}).join('\n');
 
     if (!userInput.trim()) {
-      return NextResponse.json(
-        { success: false, error: '输入内容为空' },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: '输入内容为空' }, { status: 400 });
     }
 
-    // Render prompt with variables
+    console.log(`[Resume API] Input length: ${userInput.length} chars`);
+
     const { system, user } = renderPrompt('resume-generate', {
       user_input: userInput,
       resume_context: '',
-    })
+    });
 
-    const options: CallLLMOptions = {
-      taskType: 'resume-generate',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.7,
-      maxTokens: 4096,
-      jsonMode: true,
-    }
-
+    console.log('[Resume API] Calling LLM...');
     const result = await retryWithBackoff(() =>
-      withTimeout(llmRouter.call(options), 30000)
-    )
+      withTimeout(
+        llmRouter.call({
+          taskType: 'resume-generate',
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          temperature: 0.7,
+          maxTokens: 4096,
+          jsonMode: true,
+        }),
+        90000
+      )
+    );
 
+    console.log(
+      `[Resume API] LLM response received. Content length: ${result.content?.length || 0}`
+    );
+
+    // Parse JSON with extraction
+    let parsed;
     try {
-      // Parse and validate JSON response
-      const parsed = JSON.parse(result.content)
-      
+      const cleanedJSON = extractJSON(result.content);
+      parsed = JSON.parse(cleanedJSON);
+      console.log('[Resume API] JSON parsed successfully');
+    } catch (parseError) {
+      console.error('[Resume API] Failed to parse response:', parseError);
+      console.error('[Resume API] Raw response:', result.content?.substring(0, 1000));
+
+      // Return raw content as fallback instead of throwing
       return NextResponse.json({
         success: true,
         data: {
-          content: parsed,
-          suggestions: parsed.rawSuggestions ? [parsed.rawSuggestions] : [],
+          content: {
+            experienceItems: [],
+            skillTags: [],
+            rawSuggestions: `AI返回内容格式异常。原始回复：${result.content?.substring(0, 500)}...`,
+          },
+          suggestions: ['AI返回格式有误，建议重试'],
         },
-      })
-    } catch {
-      console.error('Failed to parse resume generation response')
-      throw AIOperationError.INVALID_RESPONSE
+        partialResult: true,
+      });
     }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        content: parsed,
+        suggestions: parsed.rawSuggestions ? [parsed.rawSuggestions] : [],
+      },
+    });
   } catch (error) {
-    console.error('Resume generation error:', error)
-    
-    // Return fallback response
-    const fallbackData = FALLBACK_RESPONSES['resume-generate']
-    
+    console.error('[Resume API] Error:', error);
+
     if (error instanceof AIOperationError) {
       return NextResponse.json({
         success: true,
         data: {
-          content: JSON.parse(fallbackData),
+          content: JSON.parse(FALLBACK_RESPONSES['resume-generate']),
           suggestions: ['AI服务暂时不可用，建议稍后重试'],
         },
         fallback: true,
-      })
+      });
     }
 
-    return NextResponse.json({
-      success: false,
-      error: '简历生成失败，请稍后重试',
-      code: 'GENERATION_FAILED',
-    }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: `简历生成失败: ${errorMessage}`,
+      },
+      { status: 500 }
+    );
   }
 }
