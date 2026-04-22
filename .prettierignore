@@ -1,0 +1,13 @@
+# Prettier ignore patterns
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+.turbo/
+*.min.js
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+supabase/
