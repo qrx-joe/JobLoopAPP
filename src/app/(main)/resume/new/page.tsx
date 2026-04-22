@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 const GUIDED_STEPS = [
   { key: 'latest_experience', question: '最近一段经历是什么？（工作/实习/项目/校园）', placeholder: '例如：在XX公司做新媒体运营...' },
@@ -10,6 +10,7 @@ const GUIDED_STEPS = [
 ]
 
 export default function NewResumePage() {
+  const [mounted, setMounted] = useState(false)
   const [activeTab, setActiveTab] = useState<'text' | 'guided' | 'file'>('text')
   const [rawInput, setRawInput] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
@@ -17,6 +18,24 @@ export default function NewResumePage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedContent, setGeneratedContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">创建简历</h1>
+          <p className="text-gray-600 mt-1">加载中...</p>
+        </div>
+        <div className="py-20 text-center text-gray-400">
+          <p>正在初始化页面...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleGenerate = async () => {
     if (!rawInput.trim()) return
@@ -67,7 +86,7 @@ export default function NewResumePage() {
       </div>
 
       {/* Mode Selector */}
-      <div className="flex gap-2 mb-8 flex-wrap">
+      <div className="flex gap-2 mb-8 flex-wrap" role="tablist">
         {[
           { id: 'text' as const, label: '自由输入' },
           { id: 'guided' as const, label: '引导式' },
@@ -76,8 +95,10 @@ export default function NewResumePage() {
           <button
             key={mode.id}
             type="button"
+            role="tab"
+            aria-selected={activeTab === mode.id}
             onClick={() => setActiveTab(mode.id)}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm cursor-pointer ${
+            className={`px-4 py-2 rounded-lg font-medium transition-colors text-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
               activeTab === mode.id
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -90,13 +111,14 @@ export default function NewResumePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: Input Panel */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6" role="tabpanel">
           {activeTab === 'text' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="resume-input" className="block text-sm font-medium text-gray-700 mb-2">
                 输入你的经历
               </label>
               <textarea
+                id="resume-input"
                 value={rawInput}
                 onChange={(e) => setRawInput(e.target.value)}
                 placeholder={'粘贴你的经历信息...\n\n示例：我在XX公司做了两年运营，主要负责公众号内容运营。期间写了100多篇文章，粉丝从0增长到了5万。还做过一个用户增长的项目...'}
@@ -104,11 +126,12 @@ export default function NewResumePage() {
                 className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
+                type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating || !rawInput.trim()}
-                className="mt-4 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="mt-4 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                {isGenerating ? '⏳ 正在生成...' : '🚀 生成简历'}
+                {isGenerating ? '正在生成...' : '生成简历'}
               </button>
             </div>
           )}
@@ -119,13 +142,14 @@ export default function NewResumePage() {
                 <span className="text-sm text-gray-500">
                   步骤 {currentStep + 1} / {GUIDED_STEPS.length}
                 </span>
-                <div className="flex gap-1">
+                <div className="flex gap-1.5" role="progressbar" aria-label={`步骤 ${currentStep + 1} of ${GUIDED_STEPS.length}`}>
                   {GUIDED_STEPS.map((_, i) => (
                     <div
                       key={i}
-                      className={`w-2 h-2 rounded-full ${
+                      className={`w-2.5 h-2.5 rounded-full transition-colors ${
                         i <= currentStep ? 'bg-blue-600' : 'bg-gray-300'
                       }`}
+                      aria-current={i === currentStep ? 'step' : undefined}
                     />
                   ))}
                 </div>
@@ -136,6 +160,7 @@ export default function NewResumePage() {
               </h3>
 
               <textarea
+                id={`guided-step-${currentStep}`}
                 value={guidedAnswers[GUIDED_STEPS[currentStep].key] || ''}
                 onChange={(e) =>
                   setGuidedAnswers({
@@ -153,7 +178,7 @@ export default function NewResumePage() {
                   <button
                     type="button"
                     onClick={() => setCurrentStep(currentStep - 1)}
-                    className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer"
+                    className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-300"
                   >
                     上一步
                   </button>
@@ -165,7 +190,7 @@ export default function NewResumePage() {
                   type="button"
                   onClick={handleGuidedNext}
                   disabled={!guidedAnswers[GUIDED_STEPS[currentStep].key]?.trim() || isGenerating}
-                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   {currentStep === GUIDED_STEPS.length - 1 ? '完成并生成' : '下一步'}
                 </button>
@@ -176,7 +201,7 @@ export default function NewResumePage() {
           {activeTab === 'file' && (
             <div className="py-16 text-center">
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 cursor-pointer hover:border-blue-400 transition-colors inline-block w-full max-w-sm mx-auto">
-                <p className="text-4xl mb-4">&#x1F4C4;</p>
+                <span className="text-4xl mb-4 block">&#x1F4C4;</span>
                 <p className="font-medium text-gray-900 mb-2">
                   点击上传或拖拽文件到此处
                 </p>
@@ -191,7 +216,7 @@ export default function NewResumePage() {
           {/* Error Display */}
           {error && (
             <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" role="alert">
-              &#x26A0;FE0F; {error}
+              <strong>警告：</strong> {error}
             </div>
           )}
         </div>
@@ -201,7 +226,7 @@ export default function NewResumePage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">简历预览</h3>
             {generatedContent && (
-              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full font-medium">
                 已生成
               </span>
             )}
@@ -209,31 +234,44 @@ export default function NewResumePage() {
 
           {generatedContent ? (
             <div className="space-y-4">
-              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-4 bg-gray-50 rounded-lg overflow-auto max-h-[500px]">
+              <pre className="whitespace-pre-wrap text-sm text-gray-700 p-4 bg-gray-50 rounded-lg overflow-auto max-h-[500px] border border-gray-100">
                 {generatedContent}
               </pre>
 
               {/* Action Buttons */}
               <div className="flex gap-3 mt-6 flex-wrap">
-                <button className="flex-1 min-w-[120px] py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer">
-                  &#x1F4E5; 导出PDF
+                <button
+                  type="button"
+                  className="flex-1 min-w-[120px] py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gray-300"
+                >
+                  导出PDF
                 </button>
-                <button className="flex-1 min-w-[120px] py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 cursor-pointer">
-                  &#x1F3AF; JD优化 &rarr;
+                <button
+                  type="button"
+                  className="flex-1 min-w-[120px] py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+                >
+                  JD优化 &rarr;
                 </button>
-                <button className="flex-1 min-w-[120px] py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 cursor-pointer">
-                  &#x1F3A4; 面试模拟 &rarr;
+                <button
+                  type="button"
+                  className="flex-1 min-w-[120px] py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                >
+                  面试模拟 &rarr;
                 </button>
               </div>
             </div>
           ) : isGenerating ? (
             <div className="py-20 text-center">
-              <div className="inline-block animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" role="status" aria-label="Loading" />
+              <div
+                className="inline-block animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full"
+                role="status"
+                aria-label="加载中"
+              />
               <p className="mt-4 text-gray-600">AI正在分析你的经历...</p>
             </div>
           ) : (
             <div className="py-20 text-center text-gray-400">
-              <p className="text-4xl mb-4">&#x1F4CB;</p>
+              <span className="text-4xl mb-4 block">&#x1F4CB;</span>
               <p>左侧输入经历后，这里会显示生成的简历</p>
             </div>
           )}

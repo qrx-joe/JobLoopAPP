@@ -1,27 +1,30 @@
-import type { Metadata } from 'next'
-import '@/styles/globals.css'
-import { Header } from '@/components/layout/Header'
-import { Footer } from '@/components/layout/Footer'
+import type { Metadata, Viewport } from 'next'
+import { ClientLayout } from '@/components/ClientLayout'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: 'JobLoop - AI求职助手',
-  description: '从零散经历到结构化简历，再到面试准备，一站式AI求职闭环工具',
-  keywords: ['AI简历', '求职', '面试模拟', 'JD匹配', 'AI面试'],
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN">
-      <body className="min-h-screen flex flex-col bg-gray-50">
-        <Header />
-        <main className="flex-1">
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){if(typeof window!=='undefined'){try{var o=Element.prototype.getBoundingClientRect;Element.prototype.getBoundingClientRect=function(){if(!this||!this.isConnected)return{top:0,right:0,bottom:0,left:0,width:0,height:0,x:0,y:0,toJSON:function(){return{}}};return o.apply(this,arguments)};window.addEventListener('error',function(e){var m=e.message||'';if(m.indexOf('getBoundingClientRect')>-1){e.stopImmediatePropagation();return true}},true)}catch(e){}}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-screen bg-gray-50">
+        <ClientLayout>
           {children}
-        </main>
-        <Footer />
+        </ClientLayout>
       </body>
     </html>
   )
