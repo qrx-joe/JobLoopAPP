@@ -21,7 +21,7 @@ const providers: Record<string, ProviderConfig> = {
   deepseek: {
     apiKey: process.env.DEEPSEEK_API_KEY || '',
     baseURL: process.env.DEEPSEEK_API_BASE_URL,
-    defaultModel: AI_MODELS.DEEPSEEK,
+    defaultModel: process.env.LLM_MODEL || AI_MODELS.DEEPSEEK,
   },
 }
 

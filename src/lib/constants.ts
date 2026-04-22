@@ -6,7 +6,7 @@ export const AI_MODELS = {
   GPT4O: 'gpt-4o',
   GPT4O_MINI: 'gpt-4o-mini',
   CLAUDE_35_SONNET: 'claude-3-5-sonnet-20240620',
-  DEEPSEEK: 'deepseek-chat',
+  DEEPSEEK: 'deepseek-ai/DeepSeek-V3',
 } as const
 
 // Task Types for Model Routing
