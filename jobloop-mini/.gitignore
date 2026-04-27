@@ -1,9 +1,15 @@
 # Dependencies
 node_modules/
+.swc/
 
 # Build output
 dist/
 .temp/
+.cache/
+
+# Build logs
+*.log
+*-out.txt
 
 # IDE
 .vscode/
@@ -22,3 +28,8 @@ Thumbs.db
 
 # TypeScript
 *.tsbuildinfo
+
+# Dev scripts (temporary)
+fix-*.bat
+rebuild.bat
+fix_var.py
