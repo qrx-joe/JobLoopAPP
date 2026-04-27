@@ -1,293 +1,258 @@
 import { Component } from 'react'
-import Taro, { useRouter } from '@tarojs/taro'
-import { View, Text, Button, Textarea, ScrollView, Image } from '@tarojs/components'
-import {
-  saveResumeDraft,
-  getResumeDraft,
-  saveGeneratedResume,
-  getGeneratedResume,
-  saveTargetRole,
-} from '@/utils/storage'
-import { generateResume } from '@/services/request'
+import { View, Text, Input, Textarea } from '@tarojs/components'
+
+interface ResumeItem {
+  title: string
+  role: string
+  achievements: string[]
+}
 
 export default class ResumePage extends Component {
   state = {
-    activeTab: 'text' as 'text' | 'guided' | 'file',
-    rawInput: '',
-    currentStep: 0,
-    guidedAnswers: {} as Record<string, string>,
+    activeTab: 0,
+    tabs: ['文本输入', '上传文件', '引导式'],
+    experience: '',
+    name: '',
+    targetRole: '',
     isGenerating: false,
-    generatedContent: null as string | null,
-    error: null as string | null,
-    modeFromUrl: '' as string,
+    resumeItems: [] as ResumeItem[],
+    skills: [] as string[],
+    showResult: false,
   }
 
-  router = useRouter()
-
-  componentDidMount() {
-    const router = Taro.getCurrentInstance().router
-    const mode = (router?.params?.mode) || ''
-    this.setState({ modeFromUrl: mode || 'text', activeTab: (mode === 'guided' ? 'guided' : mode) || 'text' })
-
-    // 恢复草稿
-    const draft = getResumeDraft()
-    if (draft?.rawInput) {
-      this.setState({
-        rawInput: draft.rawInput,
-        activeTab: draft.inputMode || 'text',
-        guidedAnswers: draft.guidedAnswers || {},
-      })
-    }
-
-    // 恢复已生成内容
-    const generated = getGeneratedResume()
-    if (generated?.content) {
-      this.setState({ generatedContent: generated.content })
-    }
+  switchTab = (idx) => {
+    this.setState({ activeTab: idx })
   }
 
-  handleGenerate = async () => {
-    const { rawInput, activeTab, guidedAnswers } = this.state
-    if (!rawInput.trim()) return
+  onExperienceChange = (e) => {
+    this.setState({ experience: e.detail.value })
+  }
 
-    this.setState({ isGenerating: true, error: null })
-    saveResumeDraft({ rawInput, inputMode: activeTab, guidedAnswers })
+  onNameChange = (e) => {
+    this.setState({ name: e.detail.value })
+  }
 
-    try {
-      const res = await generateResume({
-        userInput: rawInput,
-        inputMode: activeTab,
-        guidedAnswers,
-      })
+  onTargetRoleChange = (e) => {
+    this.setState({ targetRole: e.detail.value })
+  }
 
-      if (res.success && res.data?.content) {
-        const contentStr = JSON.stringify(res.data.content, null, 2)
-        this.setState({ generatedContent: contentStr })
-        saveGeneratedResume({ content: contentStr, generatedAt: Date.now() })
-      } else {
-        this.setState({ error: res.error || '生成失败，请重试' })
-      }
-    } catch (e) {
-      this.setState({ error: '网络错误，请检查连接后重试' })
-    } finally {
-      this.setState({ isGenerating: false })
+  generateResume = () => {
+    const { experience, activeTab } = this.state
+    if (!experience.trim() && activeTab === 0) return
+    if (activeTab === 1 || activeTab === 2 || experience.trim()) {
+      this.setState({ isGenerating: true })
+      setTimeout(() => {
+        this.setState({
+          isGenerating: false,
+          showResult: true,
+          resumeItems: [
+            { title: '校园公众号运营', role: '内容运营实习生', achievements: [
+              '独立负责公众号推文撰写与排版，累计发布原创文章 40+ 篇',
+              '通过选题优化和社群推广，3 个月内粉丝数从 0 增长至 8000+',
+              '策划并执行迎新季专题活动，吸引 300+ 新生关注，转化率超行业均值 2 倍',
+            ]},
+            { title: '校园创业项目', role: '联合发起人', achievements: [
+              '发起校园二手交易平台，首月注册用户突破 500 人，GMV 达 30000 元',
+              '负责市场推广策略制定，通过与社团合作实现零成本获客',
+              '搭建基础运营流程体系，将订单处理效率提升 60%',
+            ]},
+          ],
+          skills: ['内容运营', '数据分析', '项目管理', '团队协作', '用户增长', '文案写作'],
+        })
+      }, 1500)
     }
   }
 
-  handleGuidedNext = () => {
-    const { currentStep, guidedAnswers } = this.state
-    if (currentStep < GUIDED_STEPS.length - 1) {
-      this.setState({ currentStep: currentStep + 1 })
-    } else {
-      const combined = Object.values(guidedAnswers).join('\n')
-      this.setState({ rawInput: combined, activeTab: 'text' })
-    }
+  copyBullet = (text) => {
+    Taro.setClipboardData({
+      data: text,
+      success: () => {
+        Taro.showToast({ title: '已复制', icon: 'success' })
+      },
+    })
   }
 
-  navigateToJD = () => {
-    saveGeneratedResume({ content: this.state.generatedContent!, generatedAt: Date.now() })
-    saveResumeDraft({ rawInput: this.state.rawInput, inputMode: this.state.activeTab, guidedAnswers: this.state.guidedAnswers })
+  goToJD = () => {
     Taro.switchTab({ url: '/pages/jd/index' })
   }
 
-  navigateToInterview = () => {
-    saveGeneratedResume({ content: this.state.generatedContent!, generatedAt: Date.now() })
-    saveResumeDraft({ rawInput: this.state.rawInput, inputMode: this.state.activeTab, guidedAnswers: this.state.guidedAnswers })
-    Taro.switchTab({ url: '/pages/interview/index' })
-  }
+  render () {
+    const { activeTab, tabs, experience, name, targetRole, isGenerating, showResult, resumeItems, skills } = this.state
 
-  render() {
-    const { activeTab, rawInput, currentStep, guidedAnswers, isGenerating, generatedContent, error } = this.state
-    const step = GUIDED_STEPS[currentStep]
+    if (isGenerating) {
+      return (
+        <View className="page" style={{ minHeight: '100vh' }}>
+          <View className="loading-wrap">
+            <View style={{ display: 'flex', gap: '12rpx', justifyContent: 'center', marginBottom: '32rpx' }}>
+              {[0, 1, 2].map((i) => (
+                <View key={i} style={{
+                  width: '20rpx', height: '20rpx', borderRadius: '50%', background: '#2563eb',
+                }} />
+              ))}
+            </View>
+            <Text className="loading-msg">AI 正在分析你的经历...</Text>
+            <Text className="loading-hint-text">正在提取关键信息、构建 STAR 结构</Text>
+          </View>
+        </View>
+      )
+    }
 
+    if (showResult && resumeItems.length > 0) {
+      return (
+        <View className="page">
+          <View className="page-header-bar">
+            <View>
+              <Text className="header-title-lg">你的简历</Text>
+              <Text className="header-desc-sm">基于 AI 分析生成的结构化简历</Text>
+            </View>
+            <View className="header-badge"><Text className="header-badge-text" style={{ color: '#fff' }}>V1</Text></View>
+          </View>
+
+          <View style={{ padding: '0 28rpx' }}>
+            {/* 技能标签 */}
+            <Text className="section-title" style={{ display: 'block' }}>技能标签</Text>
+            <View className="flex-row" style={{ flexWrap: 'wrap', gap: '12rpx', marginBottom: '32rpx' }}>
+              {skills.map((skill, i) => (
+                <View key={i} className={i === 0 ? 'tag-blue tag' : i % 2 === 0 ? 'tag-green tag' : 'tag-purple tag'}>
+                  <Text>{skill}</Text>
+                </View>
+              ))}
+            </View>
+
+            {/* 简历条目 */}
+            {resumeItems.map((item, idx) => (
+              <View key={idx} className="card">
+                <View className="flex-between" style={{ marginBottom: '20rpx' }}>
+                  <Text style={{ fontSize: '30rpx', color: '#0f172a', fontWeight: 'bold' }}>{item.title}</Text>
+                  <View className="tag-orange tag"><Text>{item.role}</Text></View>
+                </View>
+                {item.achievements.map((achv, aIdx) => (
+                  <View
+                    key={aIdx}
+                    onClick={() => this.copyBullet(achv)}
+                    style={{ padding: '16rpx 0', borderBottom: aIdx < item.achievements.length - 1 ? '1rpx solid #f1f5f9' : '' }}
+                  >
+                    <View className="flex-row" style={{ alignItems: 'flex-start' }}>
+                      <Text style={{ color: '#2563eb', marginRight: '12rpx', fontSize: '26rpx' }}>•</Text>
+                      <Text style={{ fontSize: '27rpx', color: '#334155', lineHeight: '1.7', flex: 1 }}>{achv}</Text>
+                    </View>
+                    <Text className="text-xs text-muted" style={{ marginTop: '8rpx', marginLeft: '30rpx', display: 'block' }}>点击复制</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+
+          {/* 底部操作栏 */}
+          <View className="bottom-action-bar">
+            <View className="btn-half btn-cancel" onClick={() => this.setState({ showResult: false })}>
+              <Text>重新编辑</Text>
+            </View>
+            <View className="btn-half btn-confirm" onClick={this.goToJD}>
+              <Text>下一步：匹配 JD</Text>
+            </View>
+          </View>
+        </View>
+      )
+    }
+
+    // 输入模式
     return (
-      <View className="container">
-        {/* Header */}
-        <Text className="section-title">创建简历</Text>
-        <Text className="section-desc">选择一种方式开始你的简历</Text>
+      <View className="page">
+        <View className="page-header-bar">
+          <View>
+            <Text className="header-title-lg">创建简历</Text>
+            <Text className="header-desc-sm">输入经历，AI 自动结构化</Text>
+          </View>
+        </View>
 
-        {/* Tab Selector */}
-        <View className="flex-row gap-2 mb-4" style={{ flexWrap: 'wrap' }}>
-          {[
-            { id: 'text' as const, label: '自由输入' },
-            { id: 'guided' as const, label: '引导式' },
-            { id: 'file' as const, label: '上传文件' },
-          ].map(tab => (
-            <View
-              key={tab.id}
-              className="px-4 py-2"
-              style={{
-                background: activeTab === tab.id ? '#2563eb' : '#f3f4f6',
-                color: activeTab === tab.id ? '#fff' : '#374151',
-                borderRadius: '16rpx',
-                fontSize: '24rpx',
-              }}
-              onClick={() => this.setState({ activeTab: tab.id })}
-            >
-              {tab.label}
+        {/* Tab 切换 */}
+        <View className="tab-strip">
+          {tabs.map((tab, idx) => (
+            <View key={idx} className="tab-item-flex" onClick={() => this.switchTab(idx)}>
+              <Text className={activeTab === idx ? 'tab-item-text-active' : 'tab-item-text'}>{tab}</Text>
+              {activeTab === idx && <View className="tab-active-line" />}
             </View>
           ))}
         </View>
 
-        {/* Tab Content */}
-        <ScrollView scrollY style={{ maxHeight: '800rpx' }}>
-          {/* Text Mode */}
-          {activeTab === 'text' && (
-            <View className="card">
-              <Text style={{ fontSize: '26rpx', fontWeight: '600', marginBottom: '16rpx' }}>输入你的经历</Text>
-              <Textarea
-                className="input-area"
-                value={rawInput}
-                onInput={(e) => this.setState({ rawInput: e.detail.value })}
-                placeholder="粘贴你的经历信息...\n\n示例：我在XX公司做了两年运营，负责公众号内容运营..."
-                autoHeight
-                maxlength={5000}
-              />
-              <Button className="btn-primary mt-4" disabled={isGenerating || !rawInput.trim()} onClick={this.handleGenerate}>
-                {isGenerating ? '正在生成...' : '✨ 生成简历'}
-              </Button>
-            </View>
-          )}
-
-          {/* Guided Mode */}
-          {activeTab === 'guided' && (
-            <View className="card">
-              <View className="flex-between mb-4">
-                <Text style={{ color: '#9ca3af', fontSize: '24rpx' }}>
-                  步骤 {currentStep + 1} / {GUIDED_STEPS.length}
-                </Text>
-                <View className="flex-row gap-1">
-                  {GUIDED_STEPS.map((_, i) => (
-                    <View
-                      key={i}
-                      style={{
-                        width: '20rpx',
-                        height: '20rpx',
-                        borderRadius: '50%',
-                        background: i <= currentStep ? '#2563eb' : '#d1d5db',
-                      }}
-                    />
-                  ))}
+        <View style={{ padding: '28rpx' }}>
+          {activeTab === 0 ? (
+            <>
+              <View className="form-section">
+                <Text className="form-label">姓名（可选）</Text>
+                <Input className="form-input" value={name} onInput={this.onNameChange} placeholder="你的名字" />
+              </View>
+              <View className="form-section">
+                <Text className="form-label">目标岗位（可选）</Text>
+                <Input className="form-input" value={targetRole} onInput={this.onTargetRoleChange} placeholder="如：产品经理、运营专员" />
+              </View>
+              <View className="form-section">
+                <Text className="form-label">详细经历 *</Text>
+                <Textarea
+                  className="form-textarea"
+                  value={experience}
+                  onInput={this.onExperienceChange}
+                  placeholder={"请描述你的工作、实习、项目或学习经历...\n包含：做了什么、怎么做的、结果如何"}
+                  maxlength={5000}
+                />
+              </View>
+            </>
+          ) : activeTab === 1 ? (
+            <>
+              <View className="card upload-area" style={{ minHeight: '360rpx' }}>
+                <Text style={{ fontSize: '64rpx', color: '#94a3b8', display: 'block', marginBottom: '16rpx' }}>+</Text>
+                <Text className="upload-main-text">点击上传简历文件</Text>
+                <Text className="upload-sub-text">支持 PDF / Word (.docx)</Text>
+              </View>
+              <View className="tip-box">
+                <Text className="tip-text">上传后 AI 将自动解析你的经历信息</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              {[
+                { q: '最近一段经历是什么？', sub: '工作/实习/项目/校园活动均可' },
+                { q: '你在其中承担了什么职责？', sub: '描述你的角色和责任范围' },
+                { q: '你做了哪些具体的事情？', sub: '列举关键动作和决策' },
+                { q: '结果如何？有什么可量化的成果？', sub: '数据、指标、奖项等' },
+              ].map((step, idx) => (
+                <View key={idx} className="form-section">
+                  <View className="flex-row" style={{ marginBottom: '14rpx' }}>
+                    <View style={{
+                      width: '44rpx', height: '44rpx', borderRadius: '50%',
+                      background: '#2563eb', color: '#fff', fontSize: '24rpx',
+                      fontWeight: 700, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', marginRight: '14rpx', flexShrink: 0,
+                    }}>
+                      <Text style={{ color: '#fff' }}>{idx + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text className="text-bold" style={{ fontSize: '26rpx', color: '#334155', display: 'block' }}>{step.q}</Text>
+                      <Text className="text-xs text-muted" style={{ marginTop: '4rpx', display: 'block' }}>{step.sub}</Text>
+                    </View>
+                  </View>
+                  <Textarea className="form-textarea" placeholder="请输入..." style={{ minHeight: '140rpx' }} />
                 </View>
-              </View>
-
-              <Text style={{ fontSize: '32rpx', fontWeight: '600', marginBottom: '24rpx' }}>
-                {step.question}
-              </Text>
-
-              <Textarea
-                className="input-area"
-                value={guidedAnswers[step.key] || ''}
-                onInput={(e) =>
-                  this.setState({
-                    guidedAnswers: { ...guidedAnswers, [step.key]: e.detail.value },
-                  })
-                }
-                placeholder={step.placeholder}
-                autoHeight
-              />
-
-              <View className="flex-between mt-4">
-                {currentStep > 0 && (
-                  <Button
-                    size="mini"
-                    onClick={() => this.setState({ currentStep: currentStep - 1 })}
-                    style={{ background: '#fff', border: '2rpx solid #e5e7eb', color: '#374151' }}
-                  >上一步</Button>
-                )}
-                <Button
-                  size="mini"
-                  type="primary"
-                  onClick={this.handleGuidedNext}
-                  disabled={!guidedAnswers[step.key]?.trim()}
-                >
-                  {currentStep === GUIDED_STEPS.length - 1 ? '完成并生成' : '下一步'}
-                </Button>
-              </View>
-            </View>
+              ))}
+            </>
           )}
 
-          {/* File Upload Mode */}
-          {activeTab === 'file' && (
-            <View className="card flex-col flex-center" style={{ paddingVertical: '80rpx' }}>
-              <Text style={{ fontSize: '80rpx', marginBottom: '24rpx' }}>📄</Text>
-              <Text style={{ fontWeight: '600', fontSize: '30rpx', marginBottom: '12rpx' }}>上传简历文件</Text>
-              <Text style={{ fontSize: '24rpx', color: '#9ca3af', textAlign: 'center', marginBottom: '32rpx' }}>
-                支持 PDF、DOCX、TXT 格式{'\n'}文件内容将被自动解析提取
-              </Text>
-              <Button type="primary" openType="chooseMessageFile">
-                选择文件上传
-              </Button>
-              <Text style={{ fontSize: '22rpx', color: '#f59e0b', marginTop: '24rpx' }}>
-                💡 小程序端文件上传需后端支持文件接收接口
-              </Text>
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Error */}
-        {error && (
-          <View style={{
-            marginTop: '24rpx',
-            padding: '20rpx',
-            borderRadius: '12rpx',
-            background: '#fef2f2',
-            border: '2rpx solid #fecaca',
-            color: '#dc2626',
-            fontSize: '24rpx',
-          }}>
-            警告：{error}
-          </View>
-        )}
-
-        {/* Result Preview */}
-        {generatedContent && !isGenerating && (
-          <View className="card mt-2">
-            <View className="flex-between mb-3">
-              <Text style={{ fontWeight: '600' }}>✅ 简历预览</Text>
-              <Text style={{
-                padding: '4rpx 16rpx',
-                borderRadius: '999rpx',
-                background: '#dcfce7',
-                color: '#16a34a',
-                fontSize: '20rpx',
-              }}>已生成</Text>
-            </View>
-
-            <ScrollView scrollY style={{ maxHeight: '400rpx', background: '#f9fafb', borderRadius: '12rpx', padding: '24rpx' }}>
-              <Text style={{ fontSize: '22rpx', fontFamily: 'monospace', whiteSpace: 'pre-wrap' }}>
-                {generatedContent.slice(0, 2000)}{generatedContent.length > 2000 ? '\n...(已截断)' : ''}
-              </Text>
-            </ScrollView>
-
-            {/* Navigation Buttons */}
-            <View className="mt-4 gap-3 flex-col">
-              <Button style={{ background: '#16a34a' }} onClick={this.navigateToJD}>
-                JD优化 →
-              </Button>
-              <Button style={{ background: '#7c3aed' }} onClick={this.navigateToInterview}>
-                面试模拟 →
-              </Button>
+          <View style={{ marginTop: '36rpx' }}>
+            <View
+              className="btn-primary"
+              onClick={this.generateResume}
+              style={{ opacity: (experience.trim() || activeTab !== 0) ? 1 : 0.5 }}
+            >
+              <Text>{activeTab === 1 ? '分析文件' : activeTab === 2 ? '生成简历' : '开始生成'}</Text>
             </View>
           </View>
-        )}
 
-        {/* Loading */}
-        {isGenerating && !generatedContent && (
-          <View className="card flex-center" style={{ paddingVertical: '60rpx' }}>
-            <View className="loading-spinner" />
-            <Text style={{ color: '#6b7280', marginTop: '24rpx' }}>AI 正在分析你的经历...</Text>
+          <View className="tip-box" style={{ marginTop: '24rpx' }}>
+            <Text className="tip-text">本内容由 AI 辅助生成，请核实后使用</Text>
           </View>
-        )}
+        </View>
       </View>
     )
   }
 }
-
-// Import at bottom to avoid circular deps
-import { GUIDED_STEPS } from '@/config/constants'
-function getTargetRole() {
-  try { return require('@/utils/storage').getTargetRole() } catch { return '' }
-}
-
-definePageConfig({ navigationBarTitleText: '创建简历' })

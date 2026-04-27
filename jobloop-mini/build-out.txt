@@ -1,0 +1,142 @@
+﻿
+> jobloop-mini@1.0.0 build:weapp
+> taro build --type weapp
+
+👽 Taro v4.2.0
+
+Tips:
+1. 建议开启持久化缓存功能，能有效提升二次编译速度，详情请参考: https://docs.taro.zone/docs/config-detail#cache。
+
+
+node.exe : 
+所在位置 行:1 字符: 1
++ & "D:\Node/node.exe" "D:\Node/node_modules/npm/bin/npm-cli.js" run bu ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+● Webpack █████████████████████████  (0%)  
+ 
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ setup (2%)  
+ run
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/12 entries 12/12 dependen
+cies 0/12 modules 1 active 
+ babel-loader › src\app.config.ts
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/12 entries 12/12 dependen
+cies 0/12 modules 1 active 
+ babel-loader › src\app.config.ts
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (10%) 0/12 entries 12/12 dependen
+cies 1/12 modules 11 active 
+ ...l-loader › node_modules\@tarojs\webpack5-runner\dist\template\custom-wrapp
+er.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 41/69 dependen
+cies 5/24 modules 17 active 
+ babel-loader › node_modules\@tarojs\taro\index.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 102/106 depend
+encies 6/66 modules 33 active 
+ babel-loader › node_modules\@tarojs\runtime\dist\dom-external\index.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 104/108 depend
+encies 6/67 modules 61 active 
+ ...ss
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%)  
+ import loader .\node_modules\postcss-loader\dist\cjs.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 117/133 depend
+encies 9/68 modules 59 active 
+ ...ss
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 153/304 depend
+encies 13/69 modules 55 active 
+ ...ss
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 279/304 depend
+encies 14/80 modules 55 active 
+ ...e\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\slicedToArr
+ay.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 294/313 depend
+encies 14/87 modules 67 active 
+ babel-loader › node_modules\@tarojs\runtime\dist\dom\class-list.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 304/313 depend
+encies 14/91 modules 74 active 
+ babel-loader › node_modules\@tarojs\runtime\dist\polyfill\array.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 344/377 depend
+encies 25/101 modules 68 active 
+ ...\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\getPrototype
+Of.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 366/385 depend
+encies 26/112 modules 76 active 
+ ...\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\arrayWithHol
+es.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 414/426 depend
+encies 53/126 modules 62 active 
+ ...\code\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\constru
+ct.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 425/450 depend
+encies 61/130 modules 69 active 
+ ...mjs
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (60%) 11/12 entries 457/461 depen
+dencies 124/135 modules 10 active 
+ babel-loader › node_modules\@tarojs\api\dist\env.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (60%) 11/12 entries 475/475 depen
+dencies 136/142 modules 5 active 
+ node_modules\css-loader\dist\runtime\api.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (78%)  
+ chunk modules optimization
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (88%)  
+ runtime requirements
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (92%) asset processing 
+ TaroMiniPlugin
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (92%) asset processing 
+ CssMinimizerPlugin
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (92%) asset processing 
+ RealContentHashPlugin
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+✔ Webpack
+  Compiled successfully in 4.21s
+
