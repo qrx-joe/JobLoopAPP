@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+jobloop/node_modules/
+jobloop-mini/node_modules/
+
+# Build output
+jobloop-mini/dist/
+jobloop/.next/
+jobloop/out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.local
+.env.*.local
+jobloop/.env.local
+project.private.config.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Taro/Webpack build cache
+.cache/
+*.tsbuildinfo
+
+# CodeBuddy internal
+.codebuddy/
