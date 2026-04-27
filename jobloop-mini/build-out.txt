@@ -33,24 +33,24 @@ cies 0/12 modules 1 active
  babel-loader › src\app.config.ts
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (10%) 0/12 entries 12/12 dependen
-cies 1/12 modules 11 active 
+● Webpack █████████████████████████ building (10%) 0/12 entries 12/13 dependen
+cies 0/12 modules 12 active 
  ...l-loader › node_modules\@tarojs\webpack5-runner\dist\template\custom-wrapp
 er.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 41/69 dependen
-cies 5/24 modules 17 active 
- babel-loader › node_modules\@tarojs\taro\index.js
+● Webpack █████████████████████████ building (26%) 5/12 entries 24/81 dependen
+cies 5/18 modules 13 active 
+ babel-loader › node_modules\@tarojs\runtime\dist\index.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 102/106 depend
-encies 6/66 modules 33 active 
- babel-loader › node_modules\@tarojs\runtime\dist\dom-external\index.js
+● Webpack █████████████████████████ building (31%) 5/12 entries 46/116 depende
+ncies 5/26 modules 21 active 
+ babel-loader › node_modules\@tarojs\react\dist\react.esm.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 104/108 depend
-encies 6/67 modules 61 active 
+● Webpack █████████████████████████ building (32%) 5/12 entries 87/118 depende
+ncies 5/44 modules 33 active 
  ...ss
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
@@ -58,65 +58,77 @@ encies 6/67 modules 61 active
  import loader .\node_modules\postcss-loader\dist\cjs.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 117/133 depend
-encies 9/68 modules 59 active 
+● Webpack █████████████████████████ building (32%)  
+ import loader .\node_modules\sass-loader\dist\cjs.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 125/130 depend
+encies 6/73 modules 39 active 
  ...ss
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 153/304 depend
-encies 13/69 modules 55 active 
- ...ss
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 279/304 depend
-encies 14/80 modules 55 active 
+● Webpack █████████████████████████ building (32%) 5/12 entries 138/163 depend
+encies 10/74 modules 64 active 
  ...e\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\slicedToArr
 ay.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 294/313 depend
-encies 14/87 modules 67 active 
- babel-loader › node_modules\@tarojs\runtime\dist\dom\class-list.js
+● Webpack █████████████████████████ building (32%) 5/12 entries 281/327 depend
+encies 14/81 modules 61 active 
+ babel-loader › node_modules\@tarojs\shared\dist\index.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 304/313 depend
-encies 14/91 modules 74 active 
- babel-loader › node_modules\@tarojs\runtime\dist\polyfill\array.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 344/377 depend
-encies 25/101 modules 68 active 
- ...\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\getPrototype
-Of.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 366/385 depend
-encies 26/112 modules 76 active 
- ...\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\arrayWithHol
-es.js
-
-[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 414/426 depend
-encies 53/126 modules 62 active 
- ...\code\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\constru
+● Webpack █████████████████████████ building (32%) 5/12 entries 358/388 depend
+encies 26/109 modules 71 active 
+ ...obloop-mini\node_modules\@babel\runtime\helpers\esm\isNativeReflectConstru
 ct.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (32%) 5/12 entries 425/450 depend
-encies 61/130 modules 69 active 
+● Webpack █████████████████████████ building (32%) 5/12 entries 375/402 depend
+encies 30/111 modules 80 active 
+ babel-loader › node_modules\@tarojs\runtime\dist\dom\anchor-element.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 423/431 depend
+encies 50/133 modules 71 active 
+ node_modules\react-reconciler\constants.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 439/442 depend
+encies 58/134 modules 76 active 
  ...mjs
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (60%) 11/12 entries 457/461 depen
-dencies 124/135 modules 10 active 
+● Webpack █████████████████████████ building (32%) 5/12 entries 441/454 depend
+encies 63/135 modules 72 active 
+ ...e\JobLoop\jobloop-mini\node_modules\@babel\runtime\helpers\esm\superPropBa
+se.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (32%) 5/12 entries 454/468 depend
+encies 75/136 modules 61 active 
+ babel-loader › node_modules\@tarojs\api\dist\index.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (46%) 8/12 entries 473/477 depend
+encies 122/140 modules 17 active 
  babel-loader › node_modules\@tarojs\api\dist\env.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
-● Webpack █████████████████████████ building (60%) 11/12 entries 475/475 depen
-dencies 136/142 modules 5 active 
+● Webpack █████████████████████████ building (46%) 8/12 entries 481/483 depend
+encies 125/142 modules 17 active 
+ babel-loader › node_modules\@tarojs\api\dist\interceptor\index.js
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ building (60%) 11/12 entries 491/491 depen
+dencies 141/147 modules 5 active 
  node_modules\css-loader\dist\runtime\api.js
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ sealing (71%) dependencies optimization 
+ FlagDependencyUsagePlugin
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ● Webpack █████████████████████████ sealing (78%)  
  chunk modules optimization
 
@@ -137,6 +149,10 @@ dencies 136/142 modules 5 active
  RealContentHashPlugin
 
 [2K[1A[2K[1A[2K[1A[2K[1A[2K[G
+● Webpack █████████████████████████ emitting (98%)  
+ after emit
+
+[2K[1A[2K[1A[2K[1A[2K[1A[2K[G
 ✔ Webpack
-  Compiled successfully in 4.21s
+  Compiled successfully in 6.95s
 

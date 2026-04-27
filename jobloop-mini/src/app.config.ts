@@ -18,10 +18,10 @@ export default defineAppConfig({
     backgroundColor: '#ffffff',
     borderStyle: 'white',
     list: [
-      { pagePath: 'pages/index/index', text: '首页', iconPath: 'assets/home.png', selectedIconPath: 'assets/home-active.png' },
-      { pagePath: 'pages/resume/index', text: '简历', iconPath: 'assets/resume.png', selectedIconPath: 'assets/resume-active.png' },
-      { pagePath: 'pages/jd/index', text: 'JD优化', iconPath: 'assets/jd.png', selectedIconPath: 'assets/jd-active.png' },
-      { pagePath: 'pages/interview/index', text: '面试', iconPath: 'assets/interview.png', selectedIconPath: 'assets/interview-active.png' },
+      { pagePath: 'pages/index/index', text: '首页' },
+      { pagePath: 'pages/resume/index', text: '简历' },
+      { pagePath: 'pages/jd/index', text: 'JD优化' },
+      { pagePath: 'pages/interview/index', text: '面试' },
     ],
   },
 })
