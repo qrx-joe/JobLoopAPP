@@ -98,7 +98,7 @@ class LLMRouter {
     });
 
     // Build request params
-    const params: Parameters<typeof client.chat.completions.create> = {
+    const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
       model: config.defaultModel,
       messages: options.messages,
       temperature: options.temperature ?? 0.7,

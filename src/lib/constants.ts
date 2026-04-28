@@ -18,6 +18,8 @@ export const TASK_TYPES = {
   FILE_PARSE: 'file-parse',
 } as const
 
+export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES]
+
 // User Quotas (Free Tier)
 export const FREE_QUOTAS = {
   JD_ANALYSIS: 1,

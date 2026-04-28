@@ -445,7 +445,7 @@ export async function POST(request: NextRequest) {
       (body.content.rawSuggestions && body.content.rawSuggestions.trim().length > 0) ||
       (body.content.skillTags && body.content.skillTags.length > 0) ||
       Object.keys(body.content).some((key) => {
-        const v = body.content[key];
+        const v = (body.content as Record<string, unknown>)[key];
         return typeof v === 'string' && v.trim().length > 10;
       });
 
@@ -470,7 +470,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Export API] Generated ${buffer.length} bytes`);
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

@@ -6,6 +6,7 @@ import type { JDMatchResult, JobDescription } from '@/types/jd'
 
 export function useJDMatch() {
   const store = useJDStore()
+  const { setCurrentJD } = store
 
   const matchJD = useCallback(async (
     jdContent: string,
