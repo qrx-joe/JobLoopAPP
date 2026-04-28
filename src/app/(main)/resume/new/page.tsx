@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const GUIDED_STEPS = [
@@ -26,7 +26,7 @@ const GUIDED_STEPS = [
   },
 ];
 
-export default function NewResumePage() {
+function NewResumePageContent() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'text' | 'guided' | 'file'>('text');
   const [rawInput, setRawInput] = useState('');
@@ -533,5 +533,27 @@ export default function NewResumePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">创建简历</h1>
+        <p className="mt-1 text-gray-600">加载中...</p>
+      </div>
+      <div className="py-20 text-center text-gray-400">
+        <p>正在初始化页面...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function NewResumePage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <NewResumePageContent />
+    </Suspense>
   );
 }
