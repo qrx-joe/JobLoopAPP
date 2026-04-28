@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const InterviewQuestionSchema = z.object({
   id: z.string(),
@@ -11,18 +11,18 @@ export const InterviewQuestionSchema = z.object({
     scenario: z.string(), // 场景变更
   }),
   idealAnswerElements: z.array(z.string()),
-})
+});
 
 export const ScoringCriteriaSchema = z.object({
   dimensions: z.array(z.string()),
   scoreRange: z.tuple([z.number(), z.number()]),
   feedbackTemplate: z.string(),
-})
+});
 
 export const InterviewGenerationResponseSchema = z.object({
   questions: z.array(InterviewQuestionSchema),
   scoringCriteria: ScoringCriteriaSchema,
-})
+});
 
 export const INTERVIEW_GENERATE_PROMPT = {
   system: `你是一位资深的企业面试官，拥有20年面试经验。你需要为特定岗位生成高质量的面试问题。
@@ -79,9 +79,9 @@ export const INTERVIEW_GENERATE_PROMPT = {
 
   variables: ['jd_context', 'resume_context'],
   examples: [],
-}
+};
 
 export interface InterviewGenerationData {
-  questions: z.infer<typeof InterviewQuestionSchema>[]
-  scoringCriteria: z.infer<typeof ScoringCriteriaSchema>
+  questions: z.infer<typeof InterviewQuestionSchema>[];
+  scoringCriteria: z.infer<typeof ScoringCriteriaSchema>;
 }

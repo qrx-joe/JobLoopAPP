@@ -1,27 +1,27 @@
-import { create } from 'zustand'
-import type { JDMatchResult, JobDescription } from '@/types/jd'
+import { create } from 'zustand';
+import type { JDMatchResult, JobDescription } from '@/types/jd';
 
 interface JDState {
   // Current JD
-  currentJD: JobDescription | null
-  jdText: string
-  companyName: string
-  jobTitle: string
+  currentJD: JobDescription | null;
+  jdText: string;
+  companyName: string;
+  jobTitle: string;
 
   // Match result
-  matchResult: JDMatchResult | null
-  isMatching: boolean
-  error: string | null
+  matchResult: JDMatchResult | null;
+  isMatching: boolean;
+  error: string | null;
 
   // Actions
-  setJdText: (text: string) => void
-  setCompanyName: (name: string) => void
-  setJobTitle: (title: string) => void
-  setCurrentJD: (jd: JobDescription | null) => void
-  setMatchResult: (result: JDMatchResult | null) => void
-  setMatching: (matching: boolean) => void
-  setError: (error: string | null) => void
-  reset: () => void
+  setJdText: (text: string) => void;
+  setCompanyName: (name: string) => void;
+  setJobTitle: (title: string) => void;
+  setCurrentJD: (jd: JobDescription | null) => void;
+  setMatchResult: (result: JDMatchResult | null) => void;
+  setMatching: (matching: boolean) => void;
+  setError: (error: string | null) => void;
+  reset: () => void;
 }
 
 export const useJDStore = create<JDState>((set) => ({
@@ -50,4 +50,4 @@ export const useJDStore = create<JDState>((set) => ({
       isMatching: false,
       error: null,
     }),
-}))
+}));

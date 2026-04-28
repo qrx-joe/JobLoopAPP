@@ -1,29 +1,37 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const ResumeGenerateSchema = z.object({
-  experienceItems: z.array(z.object({
-    id: z.string(),
-    title: z.string(),
-    role: z.string(),
-    duration: z.string().optional(),
-    achievements: z.array(z.string()),
-    metrics: z.object({
-      type: z.enum(['quantifiable', 'qualitative']),
-      value: z.string(),
-    }).optional(),
-    starStructure: z.object({
-      situation: z.string(),
-      task: z.string(),
-      action: z.string(),
-      result: z.string(),
-    }).optional(),
-  })),
-  skillTags: z.array(z.object({
-    name: z.string(),
-    confidence: z.enum(['high', 'medium', 'low']),
-  })),
+  experienceItems: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      role: z.string(),
+      duration: z.string().optional(),
+      achievements: z.array(z.string()),
+      metrics: z
+        .object({
+          type: z.enum(['quantifiable', 'qualitative']),
+          value: z.string(),
+        })
+        .optional(),
+      starStructure: z
+        .object({
+          situation: z.string(),
+          task: z.string(),
+          action: z.string(),
+          result: z.string(),
+        })
+        .optional(),
+    })
+  ),
+  skillTags: z.array(
+    z.object({
+      name: z.string(),
+      confidence: z.enum(['high', 'medium', 'low']),
+    })
+  ),
   rawSuggestions: z.string().optional(),
-})
+});
 
 export const RESUME_GENERATE_PROMPT = {
   system: `你是一位专业的简历顾问，拥有15年HR招聘经验。你的任务是将用户提供的零散经历转化为专业、有说服力的简历内容。
@@ -70,39 +78,42 @@ export const RESUME_GENERATE_PROMPT = {
 }`,
 
   variables: ['user_input', 'resume_context'],
-  
+
   examples: [
     {
       user_input: '我之前在公司做运营，负责公众号文章写了一百多篇',
       output: JSON.stringify({
-        experienceItems: [{
-          id: 'exp_1',
-          title: '新媒体运营',
-          role: '内容运营专员',
-          duration: '',
-          achievements: [
-            '独立运营公司官方公众号，累计输出原创文章120+篇',
-            '通过数据驱动的内容策略优化，实现粉丝数从0增长至5万+（12个月）',
-            '单篇最高阅读量突破10万+，平均阅读率高于行业水平40%',
-            '建立内容选题库和SOP流程，将内容产出效率提升50%',
-          ],
-          metrics: { type: 'quantifiable', value: '粉丝增长50000+' },
-          starStructure: {
-            situation: '接手时公众号处于起步阶段，无系统化运营体系',
-            task: '承担公众号整体运营工作，目标是在1年内建立品牌影响力并获取有效流量',
-            action: '搭建内容选题机制、建立数据分析反馈闭环、尝试多种内容形式（图文/视频/活动）',
-            result: '12个月实现粉丝从0到5万+增长，平均阅读率超行业均值40%',
+        experienceItems: [
+          {
+            id: 'exp_1',
+            title: '新媒体运营',
+            role: '内容运营专员',
+            duration: '',
+            achievements: [
+              '独立运营公司官方公众号，累计输出原创文章120+篇',
+              '通过数据驱动的内容策略优化，实现粉丝数从0增长至5万+（12个月）',
+              '单篇最高阅读量突破10万+，平均阅读率高于行业水平40%',
+              '建立内容选题库和SOP流程，将内容产出效率提升50%',
+            ],
+            metrics: { type: 'quantifiable', value: '粉丝增长50000+' },
+            starStructure: {
+              situation: '接手时公众号处于起步阶段，无系统化运营体系',
+              task: '承担公众号整体运营工作，目标是在1年内建立品牌影响力并获取有效流量',
+              action: '搭建内容选题机制、建立数据分析反馈闭环、尝试多种内容形式（图文/视频/活动）',
+              result: '12个月实现粉丝从0到5万+增长，平均阅读率超行业均值40%',
+            },
           },
-        }],
+        ],
         skillTags: [
           { name: '内容创作能力', confidence: 'high' },
           { name: '数据分析能力', confidence: 'medium' },
           { name: '项目管理', confidence: 'medium' },
         ],
-        rawSuggestions: '建议补充具体的转化数据（如通过公众号带来的线索数或销售机会）以及与其他部门协作的具体案例。',
+        rawSuggestions:
+          '建议补充具体的转化数据（如通过公众号带来的线索数或销售机会）以及与其他部门协作的具体案例。',
       }),
     },
   ],
-}
+};
 
-export type ResumeGenerateData = z.infer<typeof ResumeGenerateSchema>
+export type ResumeGenerateData = z.infer<typeof ResumeGenerateSchema>;

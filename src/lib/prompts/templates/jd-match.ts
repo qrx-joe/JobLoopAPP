@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
 export const JDMatchResultSchema = z.object({
   overallScore: z.number().min(0).max(100),
@@ -7,19 +7,23 @@ export const JDMatchResultSchema = z.object({
     experience: z.number().min(0).max(100),
     expression: z.number().min(0).max(100),
   }),
-  gaps: z.array(z.object({
-    area: z.string(),
-    severity: z.enum(['high', 'medium', 'low']),
-    suggestion: z.string(),
-    isShortTerm: z.boolean(),
-  })),
-  optimizedBullets: z.array(z.object({
-    original: z.string(),
-    optimized: z.string(),
-    reason: z.string(),
-  })),
+  gaps: z.array(
+    z.object({
+      area: z.string(),
+      severity: z.enum(['high', 'medium', 'low']),
+      suggestion: z.string(),
+      isShortTerm: z.boolean(),
+    })
+  ),
+  optimizedBullets: z.array(
+    z.object({
+      original: z.string(),
+      optimized: z.string(),
+      reason: z.string(),
+    })
+  ),
   keywordTrends: z.array(z.string()),
-})
+});
 
 export const JD_MATCH_PROMPT = {
   system: `你是一位资深的求职顾问和简历优化专家，同时具备HR视角。你的任务是：
@@ -87,6 +91,6 @@ export const JD_MATCH_PROMPT = {
   variables: ['jd_context', 'resume_context'],
 
   examples: [],
-}
+};
 
-export type JDMatchData = z.infer<typeof JDMatchResultSchema>
+export type JDMatchData = z.infer<typeof JDMatchResultSchema>;

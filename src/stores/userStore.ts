@@ -1,14 +1,14 @@
-import { create } from 'zustand'
-import type { User } from '@/types/user'
+import { create } from 'zustand';
+import type { User } from '@/types/user';
 
 interface UserState {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  
-  setUser: (user: User | null) => void
-  setLoading: (loading: boolean) => void
-  logout: () => void
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+
+  setUser: (user: User | null) => void;
+  setLoading: (loading: boolean) => void;
+  logout: () => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
@@ -16,17 +16,19 @@ export const useUserStore = create<UserState>((set) => ({
   isAuthenticated: false,
   isLoading: true,
 
-  setUser: (user) => set({
-    user,
-    isAuthenticated: !!user,
-    isLoading: false,
-  }),
+  setUser: (user) =>
+    set({
+      user,
+      isAuthenticated: !!user,
+      isLoading: false,
+    }),
 
   setLoading: (loading) => set({ isLoading: loading }),
 
-  logout: () => set({
-    user: null,
-    isAuthenticated: false,
-    isLoading: false,
-  }),
-}))
+  logout: () =>
+    set({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+    }),
+}));
