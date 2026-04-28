@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useEffect } from 'react'
+import { useEffect } from 'react';
 
 /**
  * ErrorGuard - 全局错误防护组件
@@ -12,11 +12,11 @@ import { useEffect } from 'react'
 export function ErrorGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Patch Element.prototype.getBoundingClientRect for safety
-    const originalGetBCR = Element.prototype.getBoundingClientRect
+    const originalGetBCR = Element.prototype.getBoundingClientRect;
     if (typeof window !== 'undefined') {
       Element.prototype.getBoundingClientRect = function (...args) {
         try {
-          return originalGetBCR.apply(this, args)
+          return originalGetBCR.apply(this, args);
         } catch {
           // Return safe default if DOM element is not attached
           return {
@@ -29,9 +29,9 @@ export function ErrorGuard({ children }: { children: React.ReactNode }) {
             x: 0,
             y: 0,
             toJSON: () => ({}),
-          }
+          };
         }
-      }
+      };
 
       // Global error handler for uncaught errors
       const handleError = (event: ErrorEvent) => {
@@ -39,11 +39,11 @@ export function ErrorGuard({ children }: { children: React.ReactNode }) {
           event.message?.includes('getBoundingClientRect') ||
           event.error?.message?.includes('getBoundingClientRect')
         ) {
-          event.preventDefault()
-          console.warn('[ErrorGuard] Suppressed getBoundingClientRect error')
-          return false
+          event.preventDefault();
+          console.warn('[ErrorGuard] Suppressed getBoundingClientRect error');
+          return false;
         }
-      }
+      };
 
       // Global rejection handler
       const handleRejection = (event: PromiseRejectionEvent) => {
@@ -51,22 +51,22 @@ export function ErrorGuard({ children }: { children: React.ReactNode }) {
           event.reason?.message?.includes('getBoundingClientRect') ||
           String(event.reason)?.includes('getBoundingClientRect')
         ) {
-          event.preventDefault()
-          console.warn('[ErrorGuard] Suppressed getBoundingClientRect promise rejection')
-          return false
+          event.preventDefault();
+          console.warn('[ErrorGuard] Suppressed getBoundingClientRect promise rejection');
+          return false;
         }
-      }
+      };
 
-      window.addEventListener('error', handleError, true)
-      window.addEventListener('unhandledrejection', handleRejection)
+      window.addEventListener('error', handleError, true);
+      window.addEventListener('unhandledrejection', handleRejection);
 
       return () => {
-        Element.prototype.getBoundingClientRect = originalGetBCR
-        window.removeEventListener('error', handleError, true)
-        window.removeEventListener('unhandledrejection', handleRejection)
-      }
+        Element.prototype.getBoundingClientRect = originalGetBCR;
+        window.removeEventListener('error', handleError, true);
+        window.removeEventListener('unhandledrejection', handleRejection);
+      };
     }
-  }, [])
+  }, []);
 
-  return <>{children}</>
+  return <>{children}</>;
 }

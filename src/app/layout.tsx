@@ -1,15 +1,15 @@
-import type { Metadata, Viewport } from 'next'
-import { ClientLayout } from '@/components/ClientLayout'
-import './globals.css'
+import type { Metadata, Viewport } from 'next';
+import { ClientLayout } from '@/components/ClientLayout';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'JobLoop - AI求职助手',
-}
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-}
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -22,10 +22,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-gray-50" suppressHydrationWarning>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <ClientLayout>{children}</ClientLayout>
       </body>
     </html>
-  )
+  );
 }
