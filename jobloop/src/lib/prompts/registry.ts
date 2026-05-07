@@ -2,8 +2,14 @@ import { RESUME_GENERATE_PROMPT } from './templates/resume-generate';
 import { JD_MATCH_PROMPT } from './templates/jd-match';
 import { INTERVIEW_GENERATE_PROMPT } from './templates/interview-generate';
 import { INTERVIEW_REVIEW_PROMPT } from './templates/interview-review';
+import { CAREER_NAVIGATE_PROMPT } from './templates/career-navigate';
 
-export type PromptName = 'resume-generate' | 'jd-match' | 'interview-generate' | 'interview-review';
+export type PromptName =
+  | 'resume-generate'
+  | 'jd-match'
+  | 'interview-generate'
+  | 'interview-review'
+  | 'career-navigate';
 
 export interface PromptTemplate {
   name: PromptName;
@@ -34,6 +40,11 @@ const promptRegistry: Record<PromptName, PromptTemplate> = {
     name: 'interview-review',
     version: 'v1.0',
     ...INTERVIEW_REVIEW_PROMPT,
+  },
+  'career-navigate': {
+    name: 'career-navigate',
+    version: 'v1.0',
+    ...CAREER_NAVIGATE_PROMPT,
   },
 };
 

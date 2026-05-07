@@ -10,6 +10,8 @@ const KEYS = {
   GENERATED_RESUME: `${PREFIX}generated_resume`,
   JD_INPUT: `${PREFIX}jd_input`,
   INTERVIEW_DATA: `${PREFIX}interview_data`,
+  CAREER_NAV_RESULT: `${PREFIX}career_nav_result`,
+  CAREER_NAV_INPUT: `${PREFIX}career_nav_input`,
 } as const;
 
 // --- Generic helpers ---
@@ -102,6 +104,35 @@ export function saveInterviewData(data: Record<string, unknown>): void {
 
 export function getInterviewData(): Record<string, unknown> | null {
   return safeGet<Record<string, unknown> | null>(KEYS.INTERVIEW_DATA, null);
+}
+
+// --- Career Navigator ---
+
+export interface CareerNavInput {
+  rawInput: string;
+  targetCities: string;
+  interests: string;
+}
+
+export function saveCareerNavInput(input: CareerNavInput): void {
+  safeSet(KEYS.CAREER_NAV_INPUT, { ...input, updatedAt: Date.now() });
+}
+
+export function getCareerNavInput(): CareerNavInput | null {
+  return safeGet<CareerNavInput | null>(KEYS.CAREER_NAV_INPUT, null);
+}
+
+export function saveCareerNavResult(result: Record<string, unknown>): void {
+  safeSet(KEYS.CAREER_NAV_RESULT, { ...result, savedAt: Date.now() });
+}
+
+export function getCareerNavResult(): Record<string, unknown> | null {
+  return safeGet<Record<string, unknown> | null>(KEYS.CAREER_NAV_RESULT, null);
+}
+
+export function clearCareerNav(): void {
+  safeRemove(KEYS.CAREER_NAV_RESULT);
+  safeRemove(KEYS.CAREER_NAV_INPUT);
 }
 
 // --- Clear all ---

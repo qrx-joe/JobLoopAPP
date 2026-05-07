@@ -43,3 +43,10 @@ next-env.d.ts
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Personal files
+resume.docx
+resume.pdf
+docs/Q-Portfolio.docx
+docs/Q-Portfolio.pdf
+docs/session_transcript.md

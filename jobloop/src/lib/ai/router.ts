@@ -32,6 +32,7 @@ const taskModelMap: Record<TaskType, { primary: string; fallback: string }> = {
   [TASK_TYPES.INTERVIEW_GENERATE]: { primary: 'deepseek', fallback: 'openai' },
   [TASK_TYPES.INTERVIEW_FOLLOWUP]: { primary: 'deepseek', fallback: 'openai' },
   [TASK_TYPES.FILE_PARSE]: { primary: 'deepseek', fallback: 'openai' },
+  [TASK_TYPES.CAREER_NAVIGATE]: { primary: 'deepseek', fallback: 'openai' },
 };
 
 export interface CallLLMOptions {
